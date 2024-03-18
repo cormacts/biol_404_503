@@ -19,7 +19,7 @@ library(qualpalr)
 library(ggpubr)
 
 ## Reading in data from mar2018
-wrp = readRDS("data/W2019_and_RP2022_unfiltered_phyloseq.RDS")
+wrp = readRDS("data/raw/W2019_and_RP2022_unfiltered_phyloseq.RDS")
 
 # Filtering ####
 ## remove off target taxa ####
@@ -49,7 +49,7 @@ wrp.below800 <- prune_samples(sample_sums(wrp) < 800, wrp)
 wrp.below800 = as.matrix(wrp.below800@sam_data)
 
 ## write file to know which samples were lost here. This is important for the methods section.
-write.csv(wrp.below800, "wrp_samples_less_than_800.csv")
+write.csv(wrp.below800, "data/processed/wrp_samples_less_than_800.csv")
 
 ## removing ASVs that are low frequency ####
 ### extracting otu dataframe (asv table) from phyloseq object
