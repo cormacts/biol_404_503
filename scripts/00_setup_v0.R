@@ -9,8 +9,6 @@
 #   Remove off target data, failed samples, wroing ASVs, few samples, and low ASV counts
 ###########
 
-# testing
-
 # Initial Setup ####
 ## Loading Libraries
 library(tidyverse)
