@@ -56,6 +56,11 @@ trait_data <- condensed_traits %>%
                        if_else(!is.na(class), class,
                        if_else(!is.na(phylum), phylum, NA_character_))))))
 
+
+
+
+
+
 #### Attempts to propogate data ####
 
 # columns_to_process <- c("phylum", "class", "order", "family", "genus")
