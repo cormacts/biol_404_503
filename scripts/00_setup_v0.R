@@ -129,7 +129,7 @@ dephyloseq = function(phylo_obj){
   mo = mo %>% pivot_longer(cols = -c(1:metacols), names_to = "asv_name", values_to="asv_abundance")
   ## Join the metadata and otu table with the taoxnomy table
   mot = full_join(mo, tax)
-  ## Specify the output for the dephyloseq funciton
+  ## Specify the output for the dephyloseq function
   output = mot
 }
 
@@ -141,3 +141,28 @@ cleanwrp@sam_data$read_depth = sample_sums(cleanwrp)
 ## get cleanwrp data out of phyloseq and into a dataframe
 cleanwrp.df = dephyloseq(cleanwrp)
 write.csv(cleanwrp.df, "data/processed/cleanwrp_dataframe.csv")
+
+
+
+
+
+
+## Finding lowest taxanomic data ####
+# Creating function to remove blank strings and replace with NAs
+replace_empty_with_na <- function(x) {
+  x[x == ""] <- NA
+  return(x)
+}
+
+# # Applying the above function to our dataset
+# condensed_traits <- condensed_traits %>%
+#   mutate(across(everything(), replace_empty_with_na))
+# 
+# trait_data <- condensed_traits %>%
+#   rowwise() %>%
+#   mutate(lowest_rank = if_else(!is.na(genus), genus,
+#                                if_else(!is.na(family), family,
+#                                        if_else(!is.na(order), order,
+#                                                if_else(!is.na(class), class,
+#                                                        if_else(!is.na(phylum), phylum, NA_character_))))))
+# 
