@@ -7,3 +7,6 @@
 #############
 
 traits <- read.csv("data/raw/msystems.01422-21-s0005.csv")
+
+traits <- traits %>%
+  mutate(disimilatory_nitrate_reduction = if_else(rowSums(select(., starts_with("Dissimilatory_nitrate_reduction_")) == "Y") > 0, "Y", ""))
