@@ -59,14 +59,14 @@ otutab <- as.data.frame(t(as.matrix(otu_table(wrp.high@otu_table))))
 otutab$asv_abundance = rowSums(otutab)
 
 ### Finding the minimum value of asv_abundance 
-min(otutab$asv_abundance)
+# min(otutab$asv_abundance) # prints minimum value of ASV abundance
 
 ### Remvoing ASVs with low Frequency
 #### Using 100 as threshold
 otu.pruned = subset(otutab, otutab$asv_abundance>=100)
 
 ### Confirming the new minimum ASV abundance value is at the threshold
-min(otu.pruned$asv_abundance)
+# min(otu.pruned$asv_abundance) # prints minimum value of ASV abundance
 
 #### Removing ASV_abundance column
 widthotu = ncol(otu.pruned) # finding width
@@ -80,7 +80,7 @@ ASVoccur = function(x){return(sum(x>0))}
 ### Calculating the occurrence of each ASV in your dataframe
 otu.pruned$asv_occur_count = apply(otu.pruned, 1, ASVoccur)
 ### Investigating what the ASV occurance counts look like
-summary(otu.pruned$asv_occur_count)
+summary(otu.pruned$asv_occur_count) # prints summary
 
 ### Removing ASVs found two or less times
 otu.highfreq = subset(otu.pruned, otu.pruned$asv_occur_count>2)
@@ -105,7 +105,7 @@ cleanwrp = phyloseq(sample_data(wrp.high@sam_data),
 ## tax_table() Taxonomy Table: [ 337 taxa by 8 taxonomic ranks ]
 
 ## save rarefied dataframe
-write_rds(cleanwrp, "wrp_filtered.RDS")
+write_rds(cleanwrp, "data/processed/wrp_filtered.RDS")
 
 # Creating Taxaplots ####
 ## creating the dephyloseq function
@@ -140,119 +140,4 @@ cleanwrp@sam_data$read_depth = sample_sums(cleanwrp)
 
 ## get cleanwrp data out of phyloseq and into a dataframe
 cleanwrp.df = dephyloseq(cleanwrp)
-
-
-# Taxaplots ####
-# normalize the # of reads in each sample by rel. abundance to count ASV
-## caluclate relative abundance of each rank 6/genus within each sample
-cleanwrp.df$relativeabundance = as.numeric(cleanwrp.df$asv_abundance)/as.numeric(cleanwrp.df$read_depth)
-
-# making names for the plots
-cleanwrp.df$plotnames = paste0(cleanwrp.df$order, ";", cleanwrp.df$genus)
-
-
-
-# creating loop to make plots ####
-## summarize data by substrate type. This will let you make one taxaplot for each substrate, so 3 plots ## you will need to change substrate to YOUR variable of interest
-wrp.sum = ddply(cleanwrp.df, c("location", "plotnames"),
-                summarise,
-                sum = sum(relativeabundance))
-
-## get list of the substrate types. This is what the loop will use
-samplegroups = unique(wrp.sum$location)
-
-## sort data by relative abundance. This is how the loop will pick the most abundant taxa
-sorted = wrp.sum[order(-wrp.sum$sum),]
-
-## make empty dataframe to store output from the loop
-top.df = NULL
-
-## start loop
-for(i in samplegroups) {
-  for(j in i) {
-    ## subset dataframe by samples
-    #!# Remeber to change the substrate to your group!
-    sample = subset(sorted, sorted$location %in% c(j))
-    ## get top 15 genera
-    top = sample[c(1:15),]
-    ## save list of top abundance taxa
-    t.tmp <- top
-    top.df <- rbind.fill(top.df, t.tmp)
-    ## close loop
-  }
-}
-
-## add identifier for top 15 taxa
-top.df$place = "top_15"
-
-# Combine your top 15 taxa for each substrate type (from the loop) to your entire dataset
-## join the top taxa and existing dataframe
-alldata = full_join(cleanwrp.df, top.df)
-
-## make the empty "place" cells say bottom. This workes because we used full_join
-alldata$place = replace(alldata$place, is.na(alldata$place), "bottom")
-## replace plot_names that have bottom taxa as their "place" with Other
-alldata[alldata$place == "bottom",]$plotnames <- "Others"
-
-# Picking out colours ####
-# 1. find out how many colors you need
-numcol <- length(unique(alldata$plotnames))
-# 2. use a number seed to determine how qualpar samples your colors from its palette
-set.seed(15)
-# 3. use qualpalr colour palettes for easily distinguishing taxa
-newpal <- qualpal(n = numcol, colorspace = "pretty")
-# 4. Extract hex colors
-hex = as.data.frame(newpal$hex)
-colnames(hex) <- c("taxa_color")
-# 5. Get list of taxa
-tops = as.data.frame(c(unique(alldata$plotnames)))
-colnames(tops) <- c("plotnames")
-# 6. Join color list and taxa names
-topcolors = cbind(tops, hex)
-# 7. for the "others" plot name, replace that with grey 90 (this is just an astetic thing)
-topcolors[topcolors$plotnames == "Others",]$taxa_color <- "grey90"
-
-# 8. Make an object R can pull form for the colors
-plotcolors <- topcolors$taxa_color
-names(plotcolors) <- topcolors$plotnames
-
-# Order Taxaplot ####
-## order by decreasing relative abundance
-alldata = alldata[order(-alldata$relativeabundance),]
-
-## get list of factors in order
-natural.genus.order = as.list(c(unique(alldata$plotnames)))
-
-## remove others from list #!#
-no.others=natural.genus.order[!natural.genus.order == 'Others']
-
-## add Others to end of list
-plot.order = append(no.others, "Others")
-
-## set plot_names levels
-plot.order = unlist(plot.order)
-
-## order dataframe by relative abundance
-alldata$plotnames = factor(alldata$plotnames, levels=c(plot.order))
-
-
-# Making the Taxaplot ####
-## these plots get pretty big, so let's only plot the macrocystis samples
-macro = subset(alldata, alldata$description =="Macrocystis")
-## make the plot
-ggplot(macro, aes(x=as.character(Row.names), y=as.numeric(relativeabundance),
-                  fill=as.factor(plotnames)))+
-  geom_bar(stat = "identity")+
-  scale_fill_manual(values=plotcolors)+
-  guides(fill=guide_legend(ncol=2))+
-  facet_grid(.~location, scales="free", space="free")+
-  theme_bw()+
-  theme(panel.grid = element_blank(),
-        strip.background = element_rect(fill="white"),
-        axis.text.y = element_text(size = 10, colour = "black"),
-        axis.title = element_text(size=10, face="bold"),
-        strip.text = element_text(color="black", size=10),
-        legend.text=element_text(size=6),
-        axis.line = element_line(colour = "black"),
-        axis.text.x = element_blank())+
-  labs(y="Relative Abundance", x="Sample", fill="Taxa")
+write.csv(cleanwrp.df, "data/processed/cleanwrp_dataframe.csv")
