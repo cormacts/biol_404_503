@@ -18,19 +18,8 @@ library(plyr)
 library(qualpalr)
 library(ggpubr)
 
-## Setting my Working Directory
-# setwd("C:/Users/elias/OneDrive/Documents/University/BIOL 403/BIOL403_proj")
-
 ## Reading in data from mar2018
 wrp = readRDS("data/W2019_and_RP2022_unfiltered_phyloseq.RDS")
-
-## Viewing the 3 parts of the phyloseq object
-# metadata table
-# View(wrp@sam_data)
-# view taxonomy table
-# View(wrp@tax_table)
-# otu table
-# View(wrp@otu_table)
 
 # Filtering ####
 ## remove off target taxa ####
@@ -43,7 +32,8 @@ wrp = subset_taxa(wrp,
                     domain!="Eukaryota")
 
 ## removing samples with low number of reads ####
-sampleSums(wrp)
+# sampleSums(wrp) # This code prints the sample sums of 
+
 ### Add the sample sums of the reads to meta data column
 wrp@sam_data$sample_sums_unfiltered = as.numeric(sample_sums(wrp))
 #### relatively continuous increase in sample, going to use 800 as the cutoff 
