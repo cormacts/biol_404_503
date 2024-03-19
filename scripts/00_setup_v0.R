@@ -143,10 +143,6 @@ cleanwrp.df = dephyloseq(cleanwrp)
 write.csv(cleanwrp.df, "data/processed/cleanwrp_dataframe.csv")
 
 
-
-
-
-
 ## Finding lowest taxanomic data ####
 # Creating function to remove blank strings and replace with NAs
 replace_empty_with_na <- function(x) {
@@ -154,15 +150,14 @@ replace_empty_with_na <- function(x) {
   return(x)
 }
 
-# # Applying the above function to our dataset
-# condensed_traits <- condensed_traits %>%
-#   mutate(across(everything(), replace_empty_with_na))
-# 
-# trait_data <- condensed_traits %>%
-#   rowwise() %>%
-#   mutate(lowest_rank = if_else(!is.na(genus), genus,
-#                                if_else(!is.na(family), family,
-#                                        if_else(!is.na(order), order,
-#                                                if_else(!is.na(class), class,
-#                                                        if_else(!is.na(phylum), phylum, NA_character_))))))
-# 
+# Applying the above function to our dataset
+cleanwrp.df <- cleanwrp.df %>%
+  mutate(across(everything(), replace_empty_with_na))
+
+community_data <- cleanwrp.df %>%
+  rowwise() %>%
+  mutate(lowest_rank = if_else(!is.na(genus), genus,
+                       if_else(!is.na(family), family,
+                       if_else(!is.na(order), order,
+                       if_else(!is.na(class), class,
+                       if_else(!is.na(phylum), phylum, NA_character_))))))
