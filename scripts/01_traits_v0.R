@@ -6,10 +6,12 @@
 # This script will organize functional traits based on the data from Weigel (2022) paper
 #############
 
+library(dplyr) 
+
 ## Importing Data ####
 traits <- read.csv("data/raw/msystems.01422-21-s0005.csv")
 
-## Condensing categories of traits into single columns ######
+## Condensing categories of traits into single columns ####
 
 traits <- traits %>%
   mutate_at(vars(starts_with("Dissimilatory_nitrate_reduction_")), ~coalesce(., "NA")) %>%
@@ -31,11 +33,15 @@ traits <- traits %>%
   mutate_at(vars(starts_with("Nitrification")), ~coalesce(., "NA")) %>%
   mutate(nitrification = if_else(rowSums(select(., starts_with("Nitrification")) == "Y", na.rm = TRUE) > 0, "Y", ""))
 
-## Creating a new condensed dataframe ####
-# Removed MAG name, other traits not relevant to project
+## Condensing categories into one single nitrogen-related column ####
 
-condensed_traits <- traits[1:66,c("MAG_name", "phylum","class","order","family","genus","dissimilatory_nitrate_reduction",
-                              "assimilatory_nitrate_reduction","denitrification","nitrogen_fixation","nitrification")]
+traits <- traits %>%
+  mutate_at(vars(c("dissimilatory_nitrate_reduction","assimilatory_nitrate_reduction","denitrification","nitrogen_fixation","nitrification")), ~coalesce(., "NA")) %>%
+  mutate(nitrogen_cycling = if_else(rowSums(select(., c("dissimilatory_nitrate_reduction","assimilatory_nitrate_reduction","denitrification","nitrogen_fixation","nitrification")) == "Y", na.rm = TRUE) > 0, "Y", ""))
+
+## Creating a new condensed dataframe, with only one variable for nitrogen cycling ####
+
+condensed_traits <- traits[1:66,c("MAG_name", "phylum","class","order","family","genus","nitrogen_cycling")]
 
 ## Finding lowest taxanomic data ####
 # Creating function to remove blank strings and replace with NAs
