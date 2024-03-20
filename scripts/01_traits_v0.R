@@ -50,6 +50,11 @@ replace_empty_with_na <- function(x) {
   return(x)
 }
 
+replace_na_with_n <- function(x) {
+  x[is.na(x)] <- "N"
+  return(x)
+}
+
 # Applying the above function to our dataset
 condensed_traits <- condensed_traits %>%
   mutate(across(everything(), replace_empty_with_na))
@@ -62,7 +67,7 @@ trait_data <- condensed_traits %>%
                        if_else(!is.na(class), class,
                        if_else(!is.na(phylum), phylum, NA_character_))))))
 
-
+trait_data <- replace_na_with_n(trait_data)
 
 
 

@@ -15,4 +15,13 @@
 # full_join() keeps all observations in both
 
 # My (elias') thought: either inner_join - and work with only the ones that have both
-# or, we could try left join, and keep all the observations from the original data, and throw out non-relevant trat_data
+# or, we could try left join, and keep all the observations from the original data, and throw out non-relevant trait_data
+
+unique(merged )
+
+all_merged <- left_join(community_data, trait_data, by = "lowest_rank")
+
+
+# two sets of data one for meristem v and one for host type
+# lowest_rank, tip or mersitem, asv_abundance, n_cycling, 
+# same as above host type (macro vs nereo) - will have to filter for
