@@ -6,7 +6,7 @@
 # This script will organize functional traits based on the data from Weigel (2022) paper
 #############
 
-library(dplyr)
+library(dplyr) 
 
 ## Importing Data ####
 traits <- read.csv("data/raw/msystems.01422-21-s0005.csv")
