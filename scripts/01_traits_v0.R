@@ -67,10 +67,18 @@ trait_data <- condensed_traits %>%
                        if_else(!is.na(class), class,
                        if_else(!is.na(phylum), phylum, NA_character_))))))
 
-trait_data <- replace_na_with_n(trait_data)
+trait_data <- trait_data %>%
+  mutate(nitrogen_cycling = replace_na_with_n(nitrogen_cycling))
 
+# Dealing with repeat cases of lowest_rank
+# going to merge these observations into a single value for each lowest_rank
+# MAJOR DEBATE HERE: Choosing to make merged rows, such that if the rows ever say Y to N cycling, they always do
 
-
+trait_data <- trait_data %>% arrange(desc(nitrogen_cycling))
+trait_data <- trait_data %>% 
+  group_by(lowest_rank) %>% 
+  slice(1) %>% 
+  ungroup()
 
 #### Attempts to propogate data ####
 
