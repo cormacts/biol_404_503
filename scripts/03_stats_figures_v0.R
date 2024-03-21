@@ -151,6 +151,6 @@ blade_stackplot
 ggsave(file = "figures/blade_stackplot.PDF", plot = blade_stackplot, dpi = 500, units = "mm", width = 150, height = 100)
 
 ## Plans for species diversity plots: currently unsure how this will look at the moment
-## Y-axis:
-## X-axis:
-## wrap:
+## Y-axis: Count of species
+## X-axis: Macrocystis vs Nereocystis, Meristem vs Tip
+## wrap: nitrogen_cycling
