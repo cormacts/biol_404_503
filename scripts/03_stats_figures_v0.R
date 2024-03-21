@@ -41,6 +41,12 @@ blade_data <- blade_data %>%
 View(species_data)
 View(blade_data)
 
+## Aggregating data
+## Summing of asv_abundance for nitrogen cyclers, non-N cyclers, and unknowns
+
+sp_test <- species_data
+sp_test$sum_nitrogen_yes <- with(sp_test, round(sum(asv_abundance[])))
+
 ## Plan for Code:
 ## initial statistical analysis: 
 
@@ -68,7 +74,7 @@ View(blade_data)
 
 # ## t-test: ## variable names subject to change later on
 # ## between species (sp) t-test: mean number of nitrogen fixing microbe species
-sp_t_test <- t.test(nereocystis_data, macrocystis_data)
+sp_t_test <- t.test( macrocystis_data)
 print(spp_t_test)
 
 ## between kelp location (klc) t-test: mean number of nitrogen fixing microbe species
