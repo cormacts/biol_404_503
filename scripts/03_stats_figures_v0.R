@@ -11,11 +11,9 @@ library(tidyverse)
 library(car)
 library(phyloseq)
 library(ggplot2)
+library(forcats)
 
-
-## Possible separate dataframe 
-cleanwrp = read.csv("data/processed/cleanwrp_dataframe.csv")
-View(cleanwrp)
+## Using dataframe made via previous scripts
 
 ## Testable hypotheses:
 # The functional roles of microbiota associated with Macrocystis and Nereocystis differ due to the distinct life histories of these two kelp species:
@@ -28,13 +26,38 @@ View(cleanwrp)
 ## initial statistical analysis: 
 ## Individual t-test for between species and between locations
 
+
+View(species_data)
+View(blade_data)
+
+species_data <- species_data %>% 
+  mutate(
+    nitrogen_cycling = recode_factor(nitrogen_cycling,
+                          "N" = "No",
+                          "Y" = "Yes"),
+    nitrogen_cycling = fct_explicit_na(nitrogen_cycling, "Unknown"))
+
+View(species_data)
+
 ## checking assumptions for individual t-test
 ## Levene's test to test for equal variance
 
+
+## STATS BELOW ARE SUBJECT TO CHANGE, THIS IS JUST ME (ANNIE) BEING LOST 
+## AND WORKING THROUGH SOME THINGS
 ## anova test:
 ## between species that are nitrogen fixing, not nitrogen fixing, and unknowns.
-anova
+a_sp = aov(asv_abundance ~ nitrogen_cycling, data = species_data)
+summary(a_sp)
+plot(a_sp)
 
+## anova conditions are not met
+##Kruskal-Wallis Test
+kwt_sp = kruskal.test(asv_abundance ~ nitrogen_cycling, data = species_data)
+summary(kwt_sp)
+
+## Pairwise wilcoxon
+pairwise.wilcox.test(species_data$asv_abundance, species_data$nitrogen_cycling, p.adjust.method = "BH")
 
 ## t-test: ## variable names subject to change later on
 ## between species (sp) t-test: mean number of nitrogen fixing microbe species
@@ -54,8 +77,8 @@ print(klc_t_test)
 ## stack bar chart: 
 
 ## variable subject to change:
-p<-ggplot(data=df, aes(x=dose, y=len)) +
-  geom_bar(stat="identity")
+plot(asv_abundance ~ nitrogen_cycling, data = species_data)
 
-p
+ggplot(data = species_data, aes(x = , y = asv_abundance, fill = worms)) +
+
 
