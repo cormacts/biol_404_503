@@ -13,6 +13,7 @@ library(phyloseq)
 library(ggplot2)
 library(forcats)
 library(dplyr)
+library(ggpubr)
 
 ## Using dataframe made via previous scripts
 
@@ -39,79 +40,50 @@ blade_data <- blade_data %>%
                                      "Y" = "Yes"),
     nitrogen_cycling = fct_explicit_na(nitrogen_cycling, "Unknown"))
 
+## Checking if it worked
 View(species_data)
 summary(species_data)
 levels(species_data$nitrogen_cycling)
 
+## Summing the asv_abundances based off nitrogen cycling for each species
 sum_sp_data <- species_data %>%
   group_by(description, nitrogen_cycling) %>%
   summarise_at(vars(asv_abundance),
                list(sum_abundance = sum))
 
+## filtered data 
 
+## double checking if the total asv_abundance values checks out:
+##sum(species_data$asv_abundance) yes it did check out 
 
-View(blade_data)
-
-## Aggregating data
-## Summing of asv_abundance for nitrogen cyclers, non-N cyclers, and unknowns
-## using a test file so i don't mess up the actual dataframe 
-
-sp_test <- sp_test %>%
-  group_by(nitrogen_cycling) %>%
-  summarise(abundance = sum(asv_abundance))
-
-# species_data %>%
-#   filter(description == "Macrocystis") -> mac_test
-# 
-# species_data %>%
-#   filter(description == "Nereocystis") -> ner_test
-# 
-# summary(ner_test)
-# summary(mac_test)
-#   
-# mac_prop <- mac_test %>%
-#   group_by(nitrogen_cycling) %>%
-#   summarise(abundance = sum(asv_abundance))
-#   
-# summary(mac_prop)
-
-
-#ner_test %>%
-  group_by(location) %>%
-  summarise(abundance = sum(asv_abundance))
-
-
-View(mac_prop)
 
 ## Plan for Code:
 ## initial statistical analysis: 
-
-
-## STATS BELOW ARE SUBJECT TO CHANGE, THIS IS JUST ME (ANNIE) BEING LOST 
-## AND WORKING THROUGH SOME THINGS
-## anova test:
-## between species that are nitrogen fixing, not nitrogen fixing, and unknowns.
-# a_sp = aov(asv_abundance ~ nitrogen_cycling, data = species_data)
-# summary(a_sp)
-# plot(a_sp)
-# ## anova conditions are not met
-# ##Kruskal-Wallis Test
-# kwt_sp = kruskal.test(asv_abundance ~ nitrogen_cycling, data = species_data)
-# summary(kwt_sp)
-# ## Pairwise wilcoxon
-# pairwise.wilcox.test(species_data$asv_abundance, species_data$nitrogen_cycling, p.adjust.method = "BH")
-
-
 ## Individual t-test for between species and between location
 
-## checking assumptions for individual t-test
-## Levene's test to test for equal variance
-
-
 # ## t-test: ## variable names subject to change later on
-# ## between species (sp) t-test: mean number of nitrogen fixing microbe species
-sp_t_test <- t.test( macrocystis_data)
-print(spp_t_test)
+## getting the sums for nitrogen cycling microbes on each kelp species:
+mac_sum <- sum_sp_data$sum_abundance[sum_sp_data$nitrogen_cycling == "Yes" &
+                                     sum_sp_data$description == "Macrocystis"]
+
+ner_sum <- sum_sp_data$sum_abundance[sum_sp_data$nitrogen_cycling == "Yes" &
+                                       sum_sp_data$description == "Nereocystis"]
+
+## Okay, above method isn't really working for t-test purposes...
+species_data%>%
+  filter(description == "Macrocystis",
+         nitrogen_cycling == "Yes") -> mac_ndata
+
+species_data%>%
+  filter(description == "Nereocystis",
+         nitrogen_cycling == "Yes") -> ner_ndata
+
+## Testing for (t-test) assumptions: normal distribution?
+shapiro.test()
+
+## between species (sp) t-test: mean number of nitrogen fixing microbe species
+sp_t_test <- t.test(mac_ndata$asv_abundance, ner_ndata$asv_abundance)
+print(sp_t_test)
 
 ## between kelp location (klc) t-test: mean number of nitrogen fixing microbe species
 klc_t_test <- t.test(meristem_data, blade_data)
