@@ -79,6 +79,10 @@ species_data%>%
   filter(description == "Nereocystis",
          nitrogen_cycling == "Yes") -> ner_ndata
 
+species_data%>%
+  filter(nitrogen_cycling == "Yes") -> ndata
+
+
 ## Testing for (t-test) assumptions: normal distribution?
 # Density plot
 ggdensity(mac_ndata$asv_abundance, fill = "pink")
@@ -91,7 +95,20 @@ ggdensity(ner_ndata$asv_abundance, fill = "pink")
 ggqqplot(ner_ndata$asv_abundance)
 ## Very evidently not bell curves and does not seem to be distributed evenly
 
-## between species (sp) t-test: mean number of nitrogen fixing microbe species
+## Shapiro test
+ndata %>%
+  group_by(description) %>%
+  shapiro_test(asv_abundance)
+## Output from above, p-value < 0.05 which implies distribution of data is significantly
+## different from normal distribution, cannot assume normality
+
+## Levene's test for homogeneity of variances:
+sp_lt <- leveneTest(asv_abundance ~ description, ndata)
+print(sp_lt)
+## p-value is greater than 0.05, not enough evidence to reject null hypothesis
+
+## Between species (sp)test: mean number of nitrogen fixing microbe species
+## Using a Mann-Whitney U test as our data does not meet the assumptions of the t-test
 sp_t_test <- t.test(mac_ndata$asv_abundance, ner_ndata$asv_abundance)
 print(sp_t_test)
 
