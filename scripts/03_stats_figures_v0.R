@@ -134,19 +134,21 @@ sp_stackplot <- ggplot(species_data, aes(fill=nitrogen_cycling, y=asv_abundance,
                     theme_bw() +
                     scale_fill_manual(values = c("lightblue", "yellow1", "violet"))
 sp_stackplot
-ggsave(file = "/figures/species_stackplot.PDF", plot = sp_stackplot, dpi = 500, units = "mm", width = 150, height = 100)
+ggsave(file = "figures/species_stackplot.PDF", plot = sp_stackplot, dpi = 500, units = "mm", width = 150, height = 100)
 
 ## Stack bar graph looking at asv abundance of the microbes involved in nitrogen cycling,
 ## -not involved in nitrogen cycling and unknown. Comparison between abundances on meristem and blade tip
-ggplot(blade_data, aes(fill=nitrogen_cycling, y=asv_abundance, x=sample_type)) + 
-  geom_bar(position="stack", 
-           stat="identity") +
-  labs(x = "Sample Type", y = "ASV Abundance", color = "Nitrogen Cycling") +
-  theme(strip.text = element_text(face = "italic"),
-        axis.text.x = element_text(colour = "grey20", size = 12)) +
-  theme_bw() +
-  scale_fill_manual(values = c("lightblue", "yellow1", "violet"))
+blade_stackplot <- ggplot(blade_data, aes(fill=nitrogen_cycling, y=asv_abundance, x=sample_type)) + 
+                      geom_bar(position="stack", 
+                               stat="identity") +
+                      labs(x = "Sample Type", y = "ASV Abundance", color = "Nitrogen Cycling") +
+                      theme(strip.text = element_text(face = "italic"),
+                            axis.text.x = element_text(colour = "grey20", size = 12)) +
+                      theme_bw() +
+                      scale_fill_manual(values = c("lightblue", "yellow1", "violet"))
 
+blade_stackplot
+ggsave(file = "figures/blade_stackplot.PDF", plot = blade_stackplot, dpi = 500, units = "mm", width = 150, height = 100)
 
 ## Plans for species diversity plots: currently unsure how this will look at the moment
 ## Y-axis:
