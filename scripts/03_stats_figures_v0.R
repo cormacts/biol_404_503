@@ -22,11 +22,8 @@ library(forcats)
 # The functional roles of microbiota associated with younger, meristematic blade tissue differ from those associated with older, apical blade tissue in Nereocystis luetkeana:
 # Genes associated with nitrogen reduction will be present at a higher proportion in microbial communities at the meristem as this is where growth is occurring in the kelp individual, creating biological available nitrogen in these regions.
 
-## Plan for Code:
-## initial statistical analysis: 
-## Individual t-test for between species and between locations
-
 ## Making Y/N/NA into more comprehensive categorical variables
+## all missing data (N/A) values will be assigned "Unknown"
 species_data <- species_data %>% 
   mutate(
     nitrogen_cycling = recode_factor(nitrogen_cycling,
@@ -43,6 +40,10 @@ blade_data <- blade_data %>%
 
 View(species_data)
 View(blade_data)
+
+## Plan for Code:
+## initial statistical analysis: 
+## Individual t-test for between species and between location
 
 ## checking assumptions for individual t-test
 ## Levene's test to test for equal variance
@@ -80,6 +81,7 @@ print(klc_t_test)
 ## X- axis: nitrogen fixing (yes/no), unknown
 
 ## stack bar chart: (skeleton -> currently looking at ASV abundance)
+## bar chart colours subject to change, I (annie) just think these are cute and visible
 ggplot(species_data, aes(fill=nitrogen_cycling, y=asv_abundance, x=description)) + 
   geom_bar(position="stack", stat="identity")+
   labs(x = "Species", y = "ASV Abundance", color = "Nitrogen Cycling") +
@@ -98,7 +100,7 @@ ggplot(blade_data, aes(fill=nitrogen_cycling, y=asv_abundance, x=sample_type)) +
   scale_fill_manual(values = c("lightblue", "yellow1", "violet"))
 
 
-## general outline: still need to 
+## general outline: still need to sum species abundance
 ggplot(data = species_data, aes(x = nitrogen_cycling, y = asv_abundance, fill = description)) +
   geom_bar(stat = "summary",
            fun.data = "mean_se",
