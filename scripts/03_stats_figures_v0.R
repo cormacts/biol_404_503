@@ -43,9 +43,10 @@ View(species_data)
 summary(species_data)
 levels(species_data$nitrogen_cycling)
 
-mac_data <- species_data %>%
-  group_by(nitrogen_cycling, description) %>%
-  summarise(mac_sum = sum(asv_abundance))
+sum_sp_data <- species_data %>%
+  group_by(description, nitrogen_cycling) %>%
+  summarise_at(vars(asv_abundance),
+               list(sum_abundance = sum))
 
 
 
