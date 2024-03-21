@@ -15,22 +15,20 @@ new_sum_sp_data <- species_data %>%
 pivoted_sum_sp_data <- new_sum_sp_data %>%
   pivot_wider(names_from = nitrogen_cycling,values_from = sum_abundance)
 
-# Adding columns calculating 
+### Adding columns calculating: 
 # 1. Total abundance of all ASVs that are taxa covered by Weigel 2022 (functional traits paper)
-# 2. Total abundance of all ASVs covered by Weigel 2019 (original paper)
-# 3. Proportions for Y, N, and Unknown nitrogen cycling traits, out of either the 2022 or 2019 total
 pivoted_sum_sp_data$total_abundance_Weigel2022 = pivoted_sum_sp_data$Yes+pivoted_sum_sp_data$No
+# 2. Total abundance of all ASVs covered by Weigel 2019 (original paper)
 pivoted_sum_sp_data$total_abundance_Weigel2019 = pivoted_sum_sp_data$Yes+pivoted_sum_sp_data$No+pivoted_sum_sp_data$Unknown
+# 3. Proportions for Y, N, and Unknown nitrogen cycling traits, out of either the 2022 or 2019 total
 pivoted_sum_sp_data$proportion_Y_22 = pivoted_sum_sp_data$Yes/pivoted_sum_sp_data$total_abundance_Weigel2022
 pivoted_sum_sp_data$proportion_N_22 = pivoted_sum_sp_data$No/pivoted_sum_sp_data$total_abundance_Weigel2022
 pivoted_sum_sp_data$proportion_Y_19 = pivoted_sum_sp_data$Yes/pivoted_sum_sp_data$total_abundance_Weigel2019
 pivoted_sum_sp_data$proportion_N_19 = pivoted_sum_sp_data$No/pivoted_sum_sp_data$total_abundance_Weigel2019
 pivoted_sum_sp_data$proportion_NA_19 = pivoted_sum_sp_data$Unknown/pivoted_sum_sp_data$total_abundance_Weigel2019
 
-## Making a new sample ID column with species in it
+### Making dataframe to use for plotting
 pivoted_sum_sp_data$sample_ID = paste(pivoted_sum_sp_data$description,pivoted_sum_sp_data$Row.names)
-
-## Making dataframe to use for plotting
 plot_sp_proportions <- pivoted_sum_sp_data[,c("sample_ID","proportion_Y_22","proportion_N_22")]
 plot_sp_proportions <- plot_sp_proportions %>%
   pivot_longer(!sample_ID, names_to = "nitrogen_cycling",values_to = "proportions_22")
@@ -70,20 +68,18 @@ pivoted_sum_blade_data <- new_sum_blade_data %>%
 
 # Adding columns calculating 
 # 1. Total abundance of all ASVs that are taxa covered by Weigel 2022 (functional traits paper)
-# 2. Total abundance of all ASVs covered by Weigel 2019 (original paper)
-# 3. Proportions for Y, N, and Unknown nitrogen cycling traits, out of either the 2022 or 2019 total
 pivoted_sum_blade_data$total_abundance_Weigel2022 = pivoted_sum_blade_data$Yes+pivoted_sum_blade_data$No
+# 2. Total abundance of all ASVs covered by Weigel 2019 (original paper)
 pivoted_sum_blade_data$total_abundance_Weigel2019 = pivoted_sum_blade_data$Yes+pivoted_sum_blade_data$No+pivoted_sum_blade_data$Unknown
+# 3. Proportions for Y, N, and Unknown nitrogen cycling traits, out of either the 2022 or 2019 total
 pivoted_sum_blade_data$proportion_Y_22 = pivoted_sum_blade_data$Yes/pivoted_sum_blade_data$total_abundance_Weigel2022
 pivoted_sum_blade_data$proportion_N_22 = pivoted_sum_blade_data$No/pivoted_sum_blade_data$total_abundance_Weigel2022
 pivoted_sum_blade_data$proportion_Y_19 = pivoted_sum_blade_data$Yes/pivoted_sum_blade_data$total_abundance_Weigel2019
 pivoted_sum_blade_data$proportion_N_19 = pivoted_sum_blade_data$No/pivoted_sum_blade_data$total_abundance_Weigel2019
 pivoted_sum_blade_data$proportion_NA_19 = pivoted_sum_blade_data$Unknown/pivoted_sum_blade_data$total_abundance_Weigel2019
 
-## Making a new sample ID column with blade location in it
-pivoted_sum_blade_data$sample_ID = paste(pivoted_sum_blade_data$sample_type,pivoted_sum_blade_data$Row.names)
-
 ## Making dataframe to use for plotting
+pivoted_sum_blade_data$sample_ID = paste(pivoted_sum_blade_data$sample_type,pivoted_sum_blade_data$Row.names)
 plot_blade_proportions <- pivoted_sum_blade_data[,c("sample_ID","proportion_Y_22","proportion_N_22")]
 plot_blade_proportions <- plot_blade_proportions %>%
   pivot_longer(!sample_ID, names_to = "nitrogen_cycling",values_to = "proportions_22")
@@ -108,9 +104,9 @@ ggplot(plot_blade_proportions, aes(x=sample, y=proportions_22,
         axis.text.x = element_blank())+
   labs(y="Relative abundance", x="Sample", fill="Nitrogen cycling")
 
-##### Same procedure but with full Weigel 2019 dataset and Unknown taxa
+##### Same procedure but with full Weigel 2019 dataset and taxa with unknown nitrogen-cycling traits
 
-## Species comparison
+### Species comparison
 
 ## Making dataframe to use for plotting
 plot_sp_proportions_2 <- pivoted_sum_sp_data[,c("sample_ID","proportion_Y_19","proportion_N_19","proportion_NA_19")]
@@ -137,7 +133,7 @@ ggplot(plot_sp_proportions_2, aes(x=sample, y=proportions_19,
         axis.text.x = element_blank())+
   labs(y="Relative abundance", x="Sample", fill="Nitrogen cycling")
 
-### Blade location comparison
+#### Blade location comparison
 
 ## Making dataframe to use for plotting
 plot_blade_proportions_2 <- pivoted_sum_blade_data[,c("sample_ID","proportion_Y_19","proportion_N_19","proportion_NA_19")]
@@ -163,5 +159,4 @@ ggplot(plot_blade_proportions_2, aes(x=sample, y=proportions_19,
         axis.line = element_line(colour = "black"),
         axis.text.x = element_blank())+
   labs(y="Relative abundance", x="Sample", fill="Nitrogen cycling")
-
 
