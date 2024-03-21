@@ -12,6 +12,7 @@ library(car)
 library(phyloseq)
 library(ggplot2)
 library(forcats)
+library(dplyr)
 
 ## Using dataframe made via previous scripts
 
@@ -39,13 +40,47 @@ blade_data <- blade_data %>%
     nitrogen_cycling = fct_explicit_na(nitrogen_cycling, "Unknown"))
 
 View(species_data)
+summary(species_data)
+levels(species_data$nitrogen_cycling)
+
+mac_data <- species_data %>%
+  group_by(nitrogen_cycling, description) %>%
+  summarise(mac_sum = sum(asv_abundance))
+
+
+
 View(blade_data)
 
 ## Aggregating data
 ## Summing of asv_abundance for nitrogen cyclers, non-N cyclers, and unknowns
+## using a test file so i don't mess up the actual dataframe 
 
-sp_test <- species_data
-sp_test$sum_nitrogen_yes <- with(sp_test, round(sum(asv_abundance[])))
+sp_test <- sp_test %>%
+  group_by(nitrogen_cycling) %>%
+  summarise(abundance = sum(asv_abundance))
+
+# species_data %>%
+#   filter(description == "Macrocystis") -> mac_test
+# 
+# species_data %>%
+#   filter(description == "Nereocystis") -> ner_test
+# 
+# summary(ner_test)
+# summary(mac_test)
+#   
+# mac_prop <- mac_test %>%
+#   group_by(nitrogen_cycling) %>%
+#   summarise(abundance = sum(asv_abundance))
+#   
+# summary(mac_prop)
+
+
+#ner_test %>%
+  group_by(location) %>%
+  summarise(abundance = sum(asv_abundance))
+
+
+View(mac_prop)
 
 ## Plan for Code:
 ## initial statistical analysis: 
