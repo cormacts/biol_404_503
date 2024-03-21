@@ -34,13 +34,14 @@ base_and_tip <- c("Nereocystis_tip", "Nereocystis_base", "Nereocystis_tip_swab",
 
 # The below makes species_data, with only samples from the above listed locations, where both kelp species were sampled
 species_data <- all_merged %>%
-  select(description, host_common_name, location, sample_type_user, asv_abundance, lowest_rank, nitrogen_cycling) %>%
+  select(Row.names, description, host_common_name, location, sample_type_user, asv_abundance, lowest_rank, nitrogen_cycling) %>%
   filter(description == "Macrocystis" | description == "Nereocystis") %>%
   filter(location %in% both_species_locations)
 
 # The below makes blade_data, with only samples from Tatoosh and from the blade meristem and tip, also makes a new simplified 
 blade_data <- all_merged %>%
   select(
+    Row.names,
     description,
     host_common_name,
     location,
