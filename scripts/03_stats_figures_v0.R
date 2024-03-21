@@ -11,11 +11,12 @@ library(tidyverse)
 library(car)
 library(phyloseq)
 library(ggplot2)
+library(forcats)
+library(dplyr)
+library(ggpubr)
+library(rstatix)
 
-
-## Possible separate dataframe 
-cleanwrp = read.csv("data/processed/cleanwrp_dataframe.csv")
-View(cleanwrp)
+## Using dataframe made via previous scripts
 
 ## Testable hypotheses:
 # The functional roles of microbiota associated with Macrocystis and Nereocystis differ due to the distinct life histories of these two kelp species:
@@ -24,38 +25,137 @@ View(cleanwrp)
 # The functional roles of microbiota associated with younger, meristematic blade tissue differ from those associated with older, apical blade tissue in Nereocystis luetkeana:
 # Genes associated with nitrogen reduction will be present at a higher proportion in microbial communities at the meristem as this is where growth is occurring in the kelp individual, creating biological available nitrogen in these regions.
 
+## Making Y/N/NA into more comprehensive categorical variables
+## all missing data (N/A) values will be assigned "Unknown"
+species_data <- species_data %>% 
+  mutate(
+    nitrogen_cycling = recode_factor(nitrogen_cycling,
+                          "N" = "No",
+                          "Y" = "Yes"),
+    nitrogen_cycling = fct_explicit_na(nitrogen_cycling, "Unknown"))
+
+blade_data <- blade_data %>% 
+  mutate(
+    nitrogen_cycling = recode_factor(nitrogen_cycling,
+                                     "N" = "No",
+                                     "Y" = "Yes"),
+    nitrogen_cycling = fct_explicit_na(nitrogen_cycling, "Unknown"))
+
+## Checking if it worked
+# View(species_data)
+# summary(species_data)
+# levels(species_data$nitrogen_cycling)
+
+## Summing the asv_abundances based off nitrogen cycling for each species
+sum_sp_data <- species_data %>%
+  group_by(description, nitrogen_cycling) %>%
+  summarise_at(vars(asv_abundance),
+               list(sum_abundance = sum))
+## double checking if the total asv_abundance values checks out:
+##sum(species_data$asv_abundance) yes it did check out 
+
+
 ## Plan for Code:
 ## initial statistical analysis: 
-## Individual t-test for between species and between locations
+## Individual t-test for between species and between location
 
-## checking assumptions for individual t-test
-## Levene's test to test for equal variance
+# ## t-test: ## variable names subject to change later on
+## getting the sums for nitrogen cycling microbes on each kelp species:
+# mac_sum <- sum_sp_data$sum_abundance[sum_sp_data$nitrogen_cycling == "Yes" &
+#                                      sum_sp_data$description == "Macrocystis"]
+# 
+# ner_sum <- sum_sp_data$sum_abundance[sum_sp_data$nitrogen_cycling == "Yes" &
+#                                        sum_sp_data$description == "Nereocystis"]
+## Okay, above method isn't really working for t-test purposes...
 
-## anova test:
-## between species that are nitrogen fixing, not nitrogen fixing, and unknowns.
-anova
 
+## Filtering the data to focus specifically on nitrogen cycling species
+## So we can compare directly the abundance of nitrogen cycling microbes
+species_data%>%
+  filter(nitrogen_cycling == "Yes") -> ndata
 
-## t-test: ## variable names subject to change later on
-## between species (sp) t-test: mean number of nitrogen fixing microbe species
-sp_t_test <- t.test(nereocystis_data, macrocystis_data)
-print(spp_t_test)
+## Filtering data to focus on nitrogen cycling microbes for kelp sites
+## So we can compare directly the abundance of nitrogen cycling microbes
+blade_data%>%
+  filter(nitrogen_cycling == "Yes") -> bdata
 
-## between kelp location (klc) t-test: mean number of nitrogen fixing microbe species
-klc_t_test <- t.test(meristem_data, blade_data)
-print(klc_t_test)
+## We want to do a two-sample comparison to look at possible differences in microbe functionality between kelp species
+## In this case, we want to examine the differences between nitrogen cycling abundance found on the two kelp
 
+## Testing for assumptions below --------------------
+## Shapiro test:
+## Between kelp species
+ndata %>%
+  group_by(description) %>%
+  shapiro_test(asv_abundance)
+## Output from above, p-value < 0.05 which implies distribution of data is significantly
+## different from normal distribution, cannot assume normality
+
+## Between meristem and blade tip
+bdata %>%
+  group_by(sample_type) %>%
+  shapiro_test(asv_abundance)
+## Output from above, p-value < 0.05 which implies distribution of data is significantly
+## different from normal distribution, cannot assume normality
+
+## Levene's test for homogeneity of variances:
+## For between kelp species:
+sp_lt <- leveneTest(asv_abundance ~ description, ndata)
+print(sp_lt)
+## p-value is greater than 0.05, not enough evidence to reject null hypothesis
+
+## For between meristem and blade tip:
+b_lt <- leveneTest(asv_abundance ~ sample_type, bdata)
+print(b_lt)
+## p-value is less than 0.05, therefore we can reject the null hypothesis, can apply two-sample t-test
+## --------------------------------------------------
+
+## Between species (sp)test: mean number of nitrogen fixing microbe species
+## Using a Mann-Whitney U test as our data does not meet the assumptions of the t-test
+sp_wctest <- wilcox.test(asv_abundance ~ description, ndata)
+print(sp_wctest)
+## p-value is below 0.05, therefore we reject the null hypothesis
+
+## Between kelp location (klc) t-test: mean number of nitrogen fixing microbe species
+b_ttest <- t.test(asv_abundance ~ sample_type, bdata)
+print(b_ttest)
+# p-value is below 0.05, therefore we reject the null hypothesis and consider the alternative hypothesis
 
 ## Plan for Figures:
 ## Bar plots: possible 2 graphs -> proportion
 ## Y - axis: relative abundance
 ## X- axis: nitrogen fixing (yes/no), unknown
 
-## stack bar chart: 
+## stack bar chart: (skeleton -> currently looking at ASV abundance)
+## bar chart colours subject to change, I (Annie) just think these are cute and visible
 
-## variable subject to change:
-p<-ggplot(data=df, aes(x=dose, y=len)) +
-  geom_bar(stat="identity")
+## Stack bar graph looking at asv abundance of the microbes involved in nitrogen cycling,
+## -not involved in nitrogen cycling and unknown. Comparison between abundances on Macrocystis and Nereocystis
+sp_stackplot <- ggplot(species_data, aes(fill=nitrogen_cycling, y=asv_abundance, x=description)) + 
+                    geom_bar(position="stack", stat="identity")+
+                    labs(x = "Species", y = "ASV Abundance", color = "Nitrogen Cycling") +
+                    theme(strip.text = element_text(face = "italic"),
+                          axis.text.x = element_text(colour = "grey20", size = 12)) +
+                    theme_bw() +
+                    scale_fill_manual(values = c("lightblue", "yellow1", "violet"))
+sp_stackplot
+ggsave(file = "figures/species_stackplot.PDF", plot = sp_stackplot, dpi = 500, units = "mm", width = 150, height = 100)
 
-p
+## Stack bar graph looking at asv abundance of the microbes involved in nitrogen cycling,
+## -not involved in nitrogen cycling and unknown. Comparison between abundances on meristem and blade tip
+blade_stackplot <- ggplot(blade_data, aes(fill=nitrogen_cycling, y=asv_abundance, x=sample_type)) + 
+                      geom_bar(position="stack", 
+                               stat="identity") +
+                      labs(x = "Sample Type", y = "ASV Abundance", color = "Nitrogen Cycling") +
+                      theme(strip.text = element_text(face = "italic"),
+                            axis.text.x = element_text(colour = "grey20", size = 12)) +
+                      theme_bw() +
+                      scale_fill_manual(values = c("lightblue", "yellow1", "violet"))
 
+blade_stackplot
+ggsave(file = "figures/blade_stackplot.PDF", plot = blade_stackplot, dpi = 500, units = "mm", width = 150, height = 100)
+
+## Plans for species diversity plots: currently unsure how this will look at the moment
+## Y-axis: Count of species
+## X-axis: Macrocystis vs Nereocystis, Meristem vs Tip
+## wrap: nitrogen_cycling
