@@ -1,0 +1,473 @@
+---
+title: "Biol 403 code submission"
+author: "Annie, Elias, Lydia, Cormac"
+date: "2024-03-21"
+output: pdf_document
+---
+
+#Load required packages:
+
+library(dplyr)
+library(tidyverse)
+library(phyloseq)
+library(ggplot2)
+library(forcats)
+library(ggpubr)
+library(rstatix)
+library(vegan)
+library(car)
+library(plyr)
+library(qualpalr)
+
+```{r setup, include=FALSE}
+library(dplyr)
+library(tidyverse)
+library(phyloseq)
+library(ggplot2)
+library(forcats)
+library(ggpubr)
+library(rstatix)
+library(vegan)
+library(car)
+library(plyr)
+library(qualpalr)
+```
+
+#Filtering and rarefying raw weigel 2019 data
+
+```{r}
+## Reading in data from mar2018
+wrp = readRDS("data/raw/W2019_and_RP2022_unfiltered_phyloseq.RDS")
+
+# Filtering ####
+## remove off target taxa ####
+### We want only Bacteria and Archea within our data
+wrp = subset_taxa(wrp,
+                  domain!="Unassigned"&
+                    order!="Chloroplast" &
+                    order!="Mitochondria" &
+                    family!="Mitochondria" &
+                    domain!="Eukaryota")
+
+## removing samples with low number of reads ####
+# sampleSums(wrp) # This code prints the sample sums of 
+
+### Add the sample sums of the reads to meta data column
+wrp@sam_data$sample_sums_unfiltered = as.numeric(sample_sums(wrp))
+#### relatively continuous increase in sample, going to use 800 as the cutoff 
+
+## Remove all samples with less than 800 reads
+wrp.high <- prune_samples(sample_sums(wrp) >= 800, wrp)
+# Decided to use 5000, big jump from lowest value to a pretty continuous series of values
+
+## Making a new object with only the samples  lost (less than 5000 reads)
+wrp.below800 <- prune_samples(sample_sums(wrp) < 800, wrp)
+
+## Getting the metadata out of phyloseq for low reads obj
+wrp.below800 = as.matrix(wrp.below800@sam_data)
+
+## write file to know which samples were lost here. This is important for the methods section.
+write.csv(wrp.below800, "data/processed/wrp_samples_less_than_800.csv")
+
+## removing ASVs that are low frequency ####
+### extracting otu dataframe (asv table) from phyloseq object
+otutab <- as.data.frame(t(as.matrix(otu_table(wrp.high@otu_table))))
+
+### Calcuting the sum of each row in the otuta
+otutab$asv_abundance = rowSums(otutab)
+
+### Finding the minimum value of asv_abundance 
+# min(otutab$asv_abundance) # prints minimum value of ASV abundance
+
+### Remvoing ASVs with low Frequency
+#### Using 100 as threshold
+otu.pruned = subset(otutab, otutab$asv_abundance>=100)
+
+### Confirming the new minimum ASV abundance value is at the threshold
+# min(otu.pruned$asv_abundance) # prints minimum value of ASV abundance
+
+#### Removing ASV_abundance column
+widthotu = ncol(otu.pruned) # finding width
+otu.pruned = otu.pruned[,-c(widthotu)]
+
+
+## removing infrequent ASVs over samples ####
+### Creating a function that counts the number of occurence along rows where the number in the cell (ASV occurence) 
+ASVoccur = function(x){return(sum(x>0))}
+
+### Calculating the occurrence of each ASV in your dataframe
+otu.pruned$asv_occur_count = apply(otu.pruned, 1, ASVoccur)
+### Investigating what the ASV occurance counts look like
+summary(otu.pruned$asv_occur_count) # prints summary
+
+### Removing ASVs found two or less times
+otu.highfreq = subset(otu.pruned, otu.pruned$asv_occur_count>2)
+
+### Confirming filtering worked
+summary(otu.highfreq$asv_occur_count)
+
+### Removing the asv_occur_count column
+otu.highfreq = otu.highfreq[,-c(widthotu)]
+
+## data de-noising ####
+otu.clean <- mutate_all(otu.highfreq, funs(ifelse(. < 3, 0, .)))
+
+## Making a new phyloseq object of cleaned data
+cleanwrp = phyloseq(sample_data(wrp.high@sam_data),
+                    tax_table(wrp.high@tax_table),
+                    otu_table(as.matrix(otu.clean), taxa_are_rows = TRUE))
+
+## save rarefied dataframe
+write_rds(cleanwrp, "data/processed/wrp_filtered.RDS")
+
+## creating the dephyloseq function
+### breaks down the phyloseq object into more manageable data
+dephyloseq = function(phylo_obj){
+  ## get the metadata
+  meta = as.data.frame(as.matrix(phylo_obj@sam_data))
+  ## how many metadata columns you have
+  metacols = ncol(meta)+1
+  ## get out the otu table
+  ## if your metadta is empty after running this, you need to use
+  otu = as.data.frame(t(as.matrix(phylo_obj@otu_table)))
+  #otu = as.data.frame(as.matrix(phylo_obj@otu_table))
+  ## merge the metadata and otu table by the rownames (sample ids from the Illumina sequencing data)
+  mo = merge(meta, otu, by=0)
+  ## get out the taxonomy file
+  tax = as.data.frame(phylo_obj@tax_table)
+  ## get the ASV ID out. This the matches the placeholder ASV ID in the OTU table
+  tax = tax %>% rownames_to_column(var="asv_name")
+  ## pivot longer to be able to match the ASVs in the OTU table to the taxonomy table
+  mo = mo %>% pivot_longer(cols = -c(1:metacols), names_to = "asv_name", values_to="asv_abundance")
+  ## Join the metadata and otu table with the taoxnomy table
+  mot = full_join(mo, tax)
+  ## Specify the output for the dephyloseq function
+  output = mot
+}
+
+## get cleanwrp data out of phyloseq and into a dataframe
+cleanwrp.df = dephyloseq(cleanwrp)
+write.csv(cleanwrp.df, "data/processed/cleanwrp_dataframe.csv")
+
+
+## Finding lowest taxonomic data ####
+# Creating function to remove blank strings and replace with NAs
+replace_empty_with_na <- function(x) {
+  x[x == ""] <- NA
+  return(x)
+}
+
+# Applying the above function to our dataset
+cleanwrp.df <- cleanwrp.df %>%
+  mutate(across(everything(), replace_empty_with_na))
+
+community_data <- cleanwrp.df %>%
+  rowwise() %>%
+  mutate(lowest_rank = if_else(!is.na(genus), genus,
+                       if_else(!is.na(family), family,
+                       if_else(!is.na(order), order,
+                       if_else(!is.na(class), class,
+                       if_else(!is.na(phylum), phylum, NA_character_))))))
+```
+
+#This script will organize functional traits based on the data from Weigel (2022) paper
+
+```{r}
+
+## Importing Data ####
+traits <- read.csv("data/raw/msystems.01422-21-s0005.csv")
+
+## Condensing categories of traits into single columns ####
+
+traits <- traits %>%
+  mutate_at(vars(starts_with("Dissimilatory_nitrate_reduction_")), ~coalesce(., "NA")) %>%
+  mutate(dissimilatory_nitrate_reduction = if_else(rowSums(select(., starts_with("Dissimilatory_nitrate_reduction_")) == "Y", na.rm = TRUE) > 0, "Y", ""))
+
+traits <- traits %>%
+  mutate_at(vars(starts_with("Assimilatory_nitrate_reduction_")), ~coalesce(., "NA")) %>%
+  mutate(assimilatory_nitrate_reduction = if_else(rowSums(select(., starts_with("Assimilatory_nitrate_reduction_")) == "Y", na.rm = TRUE) > 0, "Y", ""))
+
+traits <- traits %>%
+  mutate_at(vars(starts_with("Denitrification")), ~coalesce(., "NA")) %>%
+  mutate(denitrification = if_else(rowSums(select(., starts_with("Denitrification")) == "Y", na.rm = TRUE) > 0, "Y", ""))
+
+traits <- traits %>%
+  mutate_at(vars(starts_with("Nitrogen_fixation")), ~coalesce(., "NA")) %>%
+  mutate(nitrogen_fixation = if_else(rowSums(select(., starts_with("Nitrogen_fixation")) == "Y", na.rm = TRUE) > 0, "Y", ""))
+
+traits <- traits %>%
+  mutate_at(vars(starts_with("Nitrification")), ~coalesce(., "NA")) %>%
+  mutate(nitrification = if_else(rowSums(select(., starts_with("Nitrification")) == "Y", na.rm = TRUE) > 0, "Y", ""))
+
+## Condensing categories into one single nitrogen-related column ####
+
+traits <- traits %>%
+  mutate_at(vars(c("dissimilatory_nitrate_reduction","assimilatory_nitrate_reduction","denitrification","nitrogen_fixation","nitrification")), ~coalesce(., "NA")) %>%
+  mutate(nitrogen_cycling = if_else(rowSums(select(., c("dissimilatory_nitrate_reduction","assimilatory_nitrate_reduction","denitrification","nitrogen_fixation","nitrification")) == "Y", na.rm = TRUE) > 0, "Y", ""))
+
+## Creating a new condensed dataframe, with only one variable for nitrogen cycling ####
+
+condensed_traits <- traits[1:66,c("MAG_name", "phylum","class","order","family","genus","nitrogen_cycling")]
+
+## Finding lowest taxanomic data ####
+# Creating function to remove blank strings and replace with NAs
+replace_empty_with_na <- function(x) {
+  x[x == ""] <- NA
+  return(x)
+}
+
+replace_na_with_n <- function(x) {
+  x[is.na(x)] <- "N"
+  return(x)
+}
+
+# Applying the above function to our dataset
+condensed_traits <- condensed_traits %>%
+  mutate(across(everything(), replace_empty_with_na))
+
+trait_data <- condensed_traits %>%
+  rowwise() %>%
+  mutate(lowest_rank = if_else(!is.na(genus), genus,
+                       if_else(!is.na(family), family,
+                       if_else(!is.na(order), order,
+                       if_else(!is.na(class), class,
+                       if_else(!is.na(phylum), phylum, NA_character_))))))
+
+trait_data <- trait_data %>%
+  mutate(nitrogen_cycling = replace_na_with_n(nitrogen_cycling))
+
+# Dealing with repeat cases of lowest_rank
+# going to merge these observations into a single value for each lowest_rank
+# MAJOR DEBATE HERE: Choosing to make merged rows, such that if the rows ever say Y to N cycling, they always do
+
+trait_data <- trait_data %>% arrange(desc(nitrogen_cycling))
+trait_data <- trait_data %>% 
+  group_by(lowest_rank) %>% 
+  slice(1) %>% 
+  ungroup()
+```
+
+#This script will join the functional trait data set and the community data set
+
+```{r}
+# trait_data is the dataframe with known taxa and traits
+# community_data is the dataframe of commmunity composition based on treatment.
+
+# We will want to join these two dataframes using some version of the join() function
+# inner_join() keeps only observations that exist in both - might lose a lot of data
+# left_join() keeps observations in the left (first) dataframe
+# full_join() keeps all observations in both
+
+# My (elias') thought: either inner_join - and work with only the ones that have both
+# or, we could try left join, and keep all the observations from the original data, and throw out non-relevant trait_data
+
+all_merged <- left_join(community_data, trait_data, by = "lowest_rank")
+
+# Creating two sets of data one for meristem v tip and one for host type
+# In either case filtering will need to happen
+## Filtering for relevant samples
+  # In species_data - only want macro and nereo (maybe control)
+  # In blade_data - only want nereo base and nereo tip (whats the difference between "tip" and "tip_swab")
+## Filtering for relevant sites 
+  # Either question can only be asked using data from specific sites - need to filter for these locations
+
+both_species_locations <- c("Bullman", "Cape_Johnson", "Destruction_Island", 
+                            "Koitlah", "Sekiu")
+base_and_tip <- c("Nereocystis_tip", "Nereocystis_base", "Nereocystis_tip_swab",
+                  "Nereocystis_base_swab")
+
+# The below makes species_data, with only samples from the above listed locations, where both kelp species were sampled
+species_data <- all_merged %>%
+  select(Row.names, description, host_common_name, location, sample_type_user, asv_abundance, lowest_rank, nitrogen_cycling) %>%
+  filter(description == "Macrocystis" | description == "Nereocystis") %>%
+  filter(location %in% both_species_locations)
+
+# The below makes blade_data, with only samples from Tatoosh and from the blade meristem and tip
+blade_data <- all_merged %>%
+  select(
+    Row.names,
+    description,
+    host_common_name,
+    location,
+    sample_type_user,
+    asv_abundance,
+    lowest_rank,
+    nitrogen_cycling
+  ) %>%
+  filter(description %in% base_and_tip) %>%
+  filter(location == "Tatoosh" |
+           location == "Tatoosh_Main_Beach") %>%
+  mutate(sample_type = if_else(
+    grepl("tip", description),
+    "tip",
+    if_else(grepl("base", description), "meristem", NA_character_)
+  )) 
+```
+
+#Testable hypotheses:
+
+##The functional roles of microbiota associated with Macrocystis and Nereocystis differ due to the distinct life histories of these two kelp species:
+###Genes associated with nitrogen reduction will be more prevalent in Nereocystis due to its high rate of growth, being an annual kelp species.
+
+##The functional roles of microbiota associated with younger, meristematic blade tissue differ from those associated with older, apical blade tissue in Nereocystis luetkeana:
+###Genes associated with nitrogen reduction will be present at a higher proportion in microbial communities at the meristem as this is where growth is occurring in the kelp individual, creating biological available nitrogen in these regions.
+
+#This script is for analysis & data visualization:
+
+```{r}
+
+## Making Y/N/NA into more comprehensive categorical variables
+## all missing data (N/A) values will be assigned "Unknown"
+species_data <- species_data %>% 
+  mutate(
+    nitrogen_cycling = recode_factor(nitrogen_cycling,
+                          "N" = "No",
+                          "Y" = "Yes"),
+    nitrogen_cycling = fct_explicit_na(nitrogen_cycling, "Unknown"))
+
+blade_data <- blade_data %>% 
+  mutate(
+    nitrogen_cycling = recode_factor(nitrogen_cycling,
+                                     "N" = "No",
+                                     "Y" = "Yes"),
+    nitrogen_cycling = fct_explicit_na(nitrogen_cycling, "Unknown"))
+
+## Checking if it worked
+# View(species_data)
+# summary(species_data)
+# levels(species_data$nitrogen_cycling)
+
+## Summing the asv_abundances based off nitrogen cycling for each species
+sum_sp_data <- species_data %>%
+  group_by(description, nitrogen_cycling) %>%
+  summarise_at(vars(asv_abundance),
+               list(sum_abundance = sum))
+## double checking if the total asv_abundance values checks out:
+##sum(species_data$asv_abundance) yes it did check out 
+
+
+## Plan for Code:
+## initial statistical analysis: 
+## Individual t-test for between species and between location
+
+# ## t-test: ## variable names subject to change later on
+## getting the sums for nitrogen cycling microbes on each kelp species:
+# mac_sum <- sum_sp_data$sum_abundance[sum_sp_data$nitrogen_cycling == "Yes" &
+#                                      sum_sp_data$description == "Macrocystis"]
+# 
+# ner_sum <- sum_sp_data$sum_abundance[sum_sp_data$nitrogen_cycling == "Yes" &
+#                                        sum_sp_data$description == "Nereocystis"]
+## Okay, above method isn't really working for t-test purposes...
+
+
+## Filtering the data to focus specifically on nitrogen cycling species
+species_data%>%
+  filter(nitrogen_cycling == "Yes") -> ndata
+
+## Filtering data to focus on nitrogen cycling microbes for kelp sites
+blade_data%>%
+  filter(nitrogen_cycling == "Yes") -> bdata
+```
+
+#Stats:
+
+```{r}
+## Shapiro test:
+## Between kelp species
+ndata %>%
+  group_by(description) %>%
+  shapiro_test(asv_abundance)
+```
+
+p-value < 0.05 which implies distribution of data is significantly
+different from normal distribution, cannot assume normality
+
+```{r}
+## Between meristem and blade tip
+bdata %>%
+  group_by(sample_type) %>%
+  shapiro_test(asv_abundance)
+```
+
+p-value < 0.05 which implies distribution of data is significantly
+different from normal distribution, cannot assume normality
+
+```{r}
+## Levene's test for homogeneity of variances:
+## For between kelp species:
+sp_lt <- leveneTest(asv_abundance ~ description, ndata)
+print(sp_lt)
+```
+
+p-value is greater than 0.05, not enough evidence to reject null hypothesis
+
+```{r}
+## For between meristem and blade tip:
+b_lt <- leveneTest(asv_abundance ~ sample_type, bdata)
+print(b_lt)
+```
+
+p-value is less than 0.05, therefore we can reject the null hypothesis, can apply two-sample t-test
+
+```{r}
+## Between species (sp)test: mean number of nitrogen fixing microbe species
+## Using a Mann-Whitney U test as our data does not meet the assumptions of the t-test
+sp_wctest <- wilcox.test(asv_abundance ~ description, ndata)
+print(sp_wctest)
+```
+
+p-value is below 0.05, therefore we reject the null hypothesis
+
+```{r}
+## Between kelp location (klc) t-test: mean number of nitrogen fixing microbe species
+b_ttest <- t.test(asv_abundance ~ sample_type, bdata)
+print(b_ttest)
+```
+
+p-value is below 0.05, therefore we reject the null hypothesis and consider the alternative hypothesis
+
+Plan for Figures:
+Bar plots: possible 2 graphs -> proportion
+Y - axis: relative abundance
+X- axis: nitrogen fixing (yes/no), unknown
+
+stack bar chart: (skeleton -> currently looking at ASV abundance)
+bar chart colours subject to change, I (Annie) just think these are cute and visible
+
+Stack bar graph looking at asv abundance of the microbes involved in nitrogen cycling,
+not involved in nitrogen cycling and unknown. Comparison between abundances on Macrocystis and Nereocystis
+
+```{r}
+sp_stackplot <- ggplot(species_data, aes(fill=nitrogen_cycling, y=asv_abundance, x=description)) + 
+                    geom_bar(position="stack", stat="identity")+
+                    labs(x = "Species", y = "ASV Abundance", color = "Nitrogen Cycling") +
+                    theme(strip.text = element_text(face = "italic"),
+                          axis.text.x = element_text(colour = "grey20", size = 12)) +
+                    theme_bw() +
+                    scale_fill_manual(values = c("lightblue", "yellow1", "violet"))
+sp_stackplot
+ggsave(file = "figures/species_stackplot.PDF", plot = sp_stackplot, dpi = 500, units = "mm", width = 150, height = 100)
+```
+
+Stack bar graph looking at asv abundance of the microbes involved in nitrogen cycling,
+not involved in nitrogen cycling and unknown. Comparison between abundances on meristem and blade tip
+
+```{r}
+blade_stackplot <- ggplot(blade_data, aes(fill=nitrogen_cycling, y=asv_abundance, x=sample_type)) + 
+                      geom_bar(position="stack", 
+                               stat="identity") +
+                      labs(x = "Sample Type", y = "ASV Abundance", color = "Nitrogen Cycling") +
+                      theme(strip.text = element_text(face = "italic"),
+                            axis.text.x = element_text(colour = "grey20", size = 12)) +
+                      theme_bw() +
+                      scale_fill_manual(values = c("lightblue", "yellow1", "violet"))
+
+blade_stackplot
+ggsave(file = "figures/blade_stackplot.PDF", plot = blade_stackplot, dpi = 500, units = "mm", width = 150, height = 100)
+```
+
+Plans for species diversity plots: currently unsure how this will look at the moment
+Y-axis: Count of species
+X-axis: Macrocystis vs Nereocystis, Meristem vs Tip
+wrap: nitrogen_cycling
+
