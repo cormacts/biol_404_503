@@ -14,6 +14,7 @@ library(ggplot2)
 library(forcats)
 library(dplyr)
 library(ggpubr)
+library(rstatix)
 
 ## Using dataframe made via previous scripts
 
@@ -63,13 +64,13 @@ sum_sp_data <- species_data %>%
 
 # ## t-test: ## variable names subject to change later on
 ## getting the sums for nitrogen cycling microbes on each kelp species:
-mac_sum <- sum_sp_data$sum_abundance[sum_sp_data$nitrogen_cycling == "Yes" &
-                                     sum_sp_data$description == "Macrocystis"]
-
-ner_sum <- sum_sp_data$sum_abundance[sum_sp_data$nitrogen_cycling == "Yes" &
-                                       sum_sp_data$description == "Nereocystis"]
-
+# mac_sum <- sum_sp_data$sum_abundance[sum_sp_data$nitrogen_cycling == "Yes" &
+#                                      sum_sp_data$description == "Macrocystis"]
+# 
+# ner_sum <- sum_sp_data$sum_abundance[sum_sp_data$nitrogen_cycling == "Yes" &
+#                                        sum_sp_data$description == "Nereocystis"]
 ## Okay, above method isn't really working for t-test purposes...
+
 species_data%>%
   filter(description == "Macrocystis",
          nitrogen_cycling == "Yes") -> mac_ndata
@@ -79,7 +80,16 @@ species_data%>%
          nitrogen_cycling == "Yes") -> ner_ndata
 
 ## Testing for (t-test) assumptions: normal distribution?
-shapiro.test()
+# Density plot
+ggdensity(mac_ndata$asv_abundance, fill = "pink")
+# QQ plot
+ggqqplot(mac_ndata$asv_abundance)
+
+# Density plot
+ggdensity(ner_ndata$asv_abundance, fill = "pink")
+# QQ plot
+ggqqplot(ner_ndata$asv_abundance)
+## Very evidently not bell curves and does not seem to be distributed evenly
 
 ## between species (sp) t-test: mean number of nitrogen fixing microbe species
 sp_t_test <- t.test(mac_ndata$asv_abundance, ner_ndata$asv_abundance)
