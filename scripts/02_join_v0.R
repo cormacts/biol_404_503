@@ -57,5 +57,3 @@ blade_data <- all_merged %>%
     "tip",
     if_else(grepl("base", description), "meristem", NA_character_)
   )) 
-
-
