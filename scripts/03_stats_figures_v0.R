@@ -43,30 +43,31 @@ View(blade_data)
 
 ## Plan for Code:
 ## initial statistical analysis: 
-## Individual t-test for between species and between location
-
-## checking assumptions for individual t-test
-## Levene's test to test for equal variance
 
 
 ## STATS BELOW ARE SUBJECT TO CHANGE, THIS IS JUST ME (ANNIE) BEING LOST 
 ## AND WORKING THROUGH SOME THINGS
 ## anova test:
 ## between species that are nitrogen fixing, not nitrogen fixing, and unknowns.
-a_sp = aov(asv_abundance ~ nitrogen_cycling, data = species_data)
-summary(a_sp)
-plot(a_sp)
+# a_sp = aov(asv_abundance ~ nitrogen_cycling, data = species_data)
+# summary(a_sp)
+# plot(a_sp)
+# ## anova conditions are not met
+# ##Kruskal-Wallis Test
+# kwt_sp = kruskal.test(asv_abundance ~ nitrogen_cycling, data = species_data)
+# summary(kwt_sp)
+# ## Pairwise wilcoxon
+# pairwise.wilcox.test(species_data$asv_abundance, species_data$nitrogen_cycling, p.adjust.method = "BH")
 
-## anova conditions are not met
-##Kruskal-Wallis Test
-kwt_sp = kruskal.test(asv_abundance ~ nitrogen_cycling, data = species_data)
-summary(kwt_sp)
 
-## Pairwise wilcoxon
-pairwise.wilcox.test(species_data$asv_abundance, species_data$nitrogen_cycling, p.adjust.method = "BH")
+## Individual t-test for between species and between location
 
-## t-test: ## variable names subject to change later on
-## between species (sp) t-test: mean number of nitrogen fixing microbe species
+## checking assumptions for individual t-test
+## Levene's test to test for equal variance
+
+
+# ## t-test: ## variable names subject to change later on
+# ## between species (sp) t-test: mean number of nitrogen fixing microbe species
 sp_t_test <- t.test(nereocystis_data, macrocystis_data)
 print(spp_t_test)
 
@@ -82,6 +83,9 @@ print(klc_t_test)
 
 ## stack bar chart: (skeleton -> currently looking at ASV abundance)
 ## bar chart colours subject to change, I (annie) just think these are cute and visible
+
+## Stack bar graph looking at asv abundance of the microbes involved in nitrogen cycling,
+## -not involved in nitrogen cycling and unknown. Comparison between abundances on Macrocystis and Nereocystis
 ggplot(species_data, aes(fill=nitrogen_cycling, y=asv_abundance, x=description)) + 
   geom_bar(position="stack", stat="identity")+
   labs(x = "Species", y = "ASV Abundance", color = "Nitrogen Cycling") +
@@ -90,6 +94,8 @@ ggplot(species_data, aes(fill=nitrogen_cycling, y=asv_abundance, x=description))
   theme_bw() +
   scale_fill_manual(values = c("lightblue", "yellow1", "violet"))
 
+## Stack bar graph looking at asv abundance of the microbes involved in nitrogen cycling,
+## -not involved in nitrogen cycling and unknown. Comparison between abundances on meristem and blade tip
 ggplot(blade_data, aes(fill=nitrogen_cycling, y=asv_abundance, x=sample_type)) + 
   geom_bar(position="stack", 
            stat="identity") +
@@ -99,16 +105,3 @@ ggplot(blade_data, aes(fill=nitrogen_cycling, y=asv_abundance, x=sample_type)) +
   theme_bw() +
   scale_fill_manual(values = c("lightblue", "yellow1", "violet"))
 
-
-## general outline: still need to sum species abundance
-ggplot(data = species_data, aes(x = nitrogen_cycling, y = asv_abundance, fill = description)) +
-  geom_bar(stat = "summary",
-           fun.data = "mean_se",
-           position = "dodge") +
-  geom_errorbar(stat = "summary",
-                fun.data = "mean_se",
-                position = position_dodge(width = 0.9),
-                width = 0.2) +
-  labs(x = "", 
-       y = " ") +
-  theme(strip.text = element_text(face = "italic"))
