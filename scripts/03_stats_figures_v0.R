@@ -71,6 +71,8 @@ sum_sp_data <- species_data %>%
 #                                        sum_sp_data$description == "Nereocystis"]
 ## Okay, above method isn't really working for t-test purposes...
 
+
+## Filtering the data to focus specifically on nitrogen cycling species
 species_data%>%
   filter(description == "Macrocystis",
          nitrogen_cycling == "Yes") -> mac_ndata
@@ -109,10 +111,11 @@ print(sp_lt)
 
 ## Between species (sp)test: mean number of nitrogen fixing microbe species
 ## Using a Mann-Whitney U test as our data does not meet the assumptions of the t-test
-sp_t_test <- t.test(mac_ndata$asv_abundance, ner_ndata$asv_abundance)
-print(sp_t_test)
+sp_wctest <- wilcox.test(asv_abundance ~ description, ndata)
+print(sp_wctest)
+## p-value is below 0.05, there is a significant difference between the groups
 
-## between kelp location (klc) t-test: mean number of nitrogen fixing microbe species
+## Between kelp location (klc) t-test: mean number of nitrogen fixing microbe species
 klc_t_test <- t.test(meristem_data, blade_data)
 print(klc_t_test)
 
