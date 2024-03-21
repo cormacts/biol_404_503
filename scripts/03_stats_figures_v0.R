@@ -81,6 +81,8 @@ blade_data%>%
 
 ## We want to do a two-sample comparison to look at possible differences in microbe functionality between kelp species
 ## In this case, we want to examine the differences between nitrogen cycling abundance found on the two kelp
+
+## Testing for assumptions below --------------------
 ## Shapiro test:
 ## Between kelp species
 ndata %>%
@@ -106,7 +108,7 @@ print(sp_lt)
 b_lt <- leveneTest(asv_abundance ~ sample_type, bdata)
 print(b_lt)
 ## p-value is less than 0.05, therefore we can reject the null hypothesis, can apply two-sample t-test
-
+## --------------------------------------------------
 
 ## Between species (sp)test: mean number of nitrogen fixing microbe species
 ## Using a Mann-Whitney U test as our data does not meet the assumptions of the t-test
