@@ -26,10 +26,7 @@ library(forcats)
 ## initial statistical analysis: 
 ## Individual t-test for between species and between locations
 
-
-View(species_data)
-View(blade_data)
-
+## Making Y/N/NA into more comprehensive categorical variables
 species_data <- species_data %>% 
   mutate(
     nitrogen_cycling = recode_factor(nitrogen_cycling,
@@ -37,7 +34,15 @@ species_data <- species_data %>%
                           "Y" = "Yes"),
     nitrogen_cycling = fct_explicit_na(nitrogen_cycling, "Unknown"))
 
+blade_data <- blade_data %>% 
+  mutate(
+    nitrogen_cycling = recode_factor(nitrogen_cycling,
+                                     "N" = "No",
+                                     "Y" = "Yes"),
+    nitrogen_cycling = fct_explicit_na(nitrogen_cycling, "Unknown"))
+
 View(species_data)
+View(blade_data)
 
 ## checking assumptions for individual t-test
 ## Levene's test to test for equal variance
@@ -79,6 +84,15 @@ print(klc_t_test)
 ## variable subject to change:
 plot(asv_abundance ~ nitrogen_cycling, data = species_data)
 
-ggplot(data = species_data, aes(x = , y = asv_abundance, fill = worms)) +
-
-
+## general outline: still need to sum species abundance
+ggplot(data = species_data, aes(x = nitrogen_cycling, y = asv_abundance, fill = description)) +
+  geom_bar(stat = "summary",
+           fun.data = "mean_se",
+           position = "dodge") +
+  geom_errorbar(stat = "summary",
+                fun.data = "mean_se",
+                position = position_dodge(width = 0.9),
+                width = 0.2) +
+  labs(x = "", 
+       y = " ") +
+  theme(strip.text = element_text(face = "italic"))
