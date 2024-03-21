@@ -42,18 +42,15 @@ blade_data <- blade_data %>%
     nitrogen_cycling = fct_explicit_na(nitrogen_cycling, "Unknown"))
 
 ## Checking if it worked
-View(species_data)
-summary(species_data)
-levels(species_data$nitrogen_cycling)
+# View(species_data)
+# summary(species_data)
+# levels(species_data$nitrogen_cycling)
 
 ## Summing the asv_abundances based off nitrogen cycling for each species
 sum_sp_data <- species_data %>%
   group_by(description, nitrogen_cycling) %>%
   summarise_at(vars(asv_abundance),
                list(sum_abundance = sum))
-
-## filtered data 
-
 ## double checking if the total asv_abundance values checks out:
 ##sum(species_data$asv_abundance) yes it did check out 
 
@@ -74,51 +71,50 @@ sum_sp_data <- species_data %>%
 
 ## Filtering the data to focus specifically on nitrogen cycling species
 species_data%>%
-  filter(description == "Macrocystis",
-         nitrogen_cycling == "Yes") -> mac_ndata
-
-species_data%>%
-  filter(description == "Nereocystis",
-         nitrogen_cycling == "Yes") -> ner_ndata
-
-species_data%>%
   filter(nitrogen_cycling == "Yes") -> ndata
 
+## Filtering data to focus on nitrogen cycling microbes for kelp sites
+blade_data%>%
+  filter(nitrogen_cycling == "Yes") -> bdata
 
-## Testing for (t-test) assumptions: normal distribution?
-# Density plot
-ggdensity(mac_ndata$asv_abundance, fill = "pink")
-# QQ plot
-ggqqplot(mac_ndata$asv_abundance)
 
-# Density plot
-ggdensity(ner_ndata$asv_abundance, fill = "pink")
-# QQ plot
-ggqqplot(ner_ndata$asv_abundance)
-## Very evidently not bell curves and does not seem to be distributed evenly
-
-## Shapiro test
+## Shapiro test:
+## Between kelp species
 ndata %>%
   group_by(description) %>%
   shapiro_test(asv_abundance)
 ## Output from above, p-value < 0.05 which implies distribution of data is significantly
 ## different from normal distribution, cannot assume normality
 
+## Between meristem and blade tip
+bdata %>%
+  group_by(sample_type) %>%
+  shapiro_test(asv_abundance)
+## Output from above, p-value < 0.05 which implies distribution of data is significantly
+## different from normal distribution, cannot assume normality
+
 ## Levene's test for homogeneity of variances:
+## For between kelp species:
 sp_lt <- leveneTest(asv_abundance ~ description, ndata)
 print(sp_lt)
 ## p-value is greater than 0.05, not enough evidence to reject null hypothesis
+
+## For between meristem and blade tip:
+b_lt <- leveneTest(asv_abundance ~ sample_type, bdata)
+print(b_lt)
+## p-value is less than 0.05, therefore we can reject the null hypothesis, can apply two-sample t-test
+
 
 ## Between species (sp)test: mean number of nitrogen fixing microbe species
 ## Using a Mann-Whitney U test as our data does not meet the assumptions of the t-test
 sp_wctest <- wilcox.test(asv_abundance ~ description, ndata)
 print(sp_wctest)
-## p-value is below 0.05, there is a significant difference between the groups
+## p-value is below 0.05, therefore we reject the null hypothesis
 
 ## Between kelp location (klc) t-test: mean number of nitrogen fixing microbe species
-klc_t_test <- t.test(meristem_data, blade_data)
-print(klc_t_test)
-
+b_ttest <- t.test(asv_abundance ~ sample_type, bdata)
+print(b_ttest)
+# p-value is below 0.05, therefore we reject the null hypothesis and consider the alternative hypothesis
 
 ## Plan for Figures:
 ## Bar plots: possible 2 graphs -> proportion
@@ -126,7 +122,7 @@ print(klc_t_test)
 ## X- axis: nitrogen fixing (yes/no), unknown
 
 ## stack bar chart: (skeleton -> currently looking at ASV abundance)
-## bar chart colours subject to change, I (annie) just think these are cute and visible
+## bar chart colours subject to change, I (Annie) just think these are cute and visible
 
 ## Stack bar graph looking at asv abundance of the microbes involved in nitrogen cycling,
 ## -not involved in nitrogen cycling and unknown. Comparison between abundances on Macrocystis and Nereocystis
@@ -149,3 +145,8 @@ ggplot(blade_data, aes(fill=nitrogen_cycling, y=asv_abundance, x=sample_type)) +
   theme_bw() +
   scale_fill_manual(values = c("lightblue", "yellow1", "violet"))
 
+
+## Plans for species diversity plots: currently unsure how this will look at the moment
+## Y-axis:
+## X-axis:
+## wrap:
