@@ -79,12 +79,26 @@ print(klc_t_test)
 ## Y - axis: relative abundance
 ## X- axis: nitrogen fixing (yes/no), unknown
 
-## stack bar chart: 
+## stack bar chart: (skeleton -> currently looking at ASV abundance)
+ggplot(species_data, aes(fill=nitrogen_cycling, y=asv_abundance, x=description)) + 
+  geom_bar(position="stack", stat="identity")+
+  labs(x = "Species", y = "ASV Abundance", color = "Nitrogen Cycling") +
+  theme(strip.text = element_text(face = "italic"),
+        axis.text.x = element_text(colour = "grey20", size = 12)) +
+  theme_bw() +
+  scale_fill_manual(values = c("lightblue", "yellow1", "violet"))
 
-## variable subject to change:
-plot(asv_abundance ~ nitrogen_cycling, data = species_data)
+ggplot(blade_data, aes(fill=nitrogen_cycling, y=asv_abundance, x=sample_type)) + 
+  geom_bar(position="stack", 
+           stat="identity") +
+  labs(x = "Sample Type", y = "ASV Abundance", color = "Nitrogen Cycling") +
+  theme(strip.text = element_text(face = "italic"),
+        axis.text.x = element_text(colour = "grey20", size = 12)) +
+  theme_bw() +
+  scale_fill_manual(values = c("lightblue", "yellow1", "violet"))
 
-## general outline: still need to sum species abundance
+
+## general outline: still need to 
 ggplot(data = species_data, aes(x = nitrogen_cycling, y = asv_abundance, fill = description)) +
   geom_bar(stat = "summary",
            fun.data = "mean_se",
