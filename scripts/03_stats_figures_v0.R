@@ -70,14 +70,17 @@ sum_sp_data <- species_data %>%
 
 
 ## Filtering the data to focus specifically on nitrogen cycling species
+## So we can compare directly the abundance of nitrogen cycling microbes
 species_data%>%
   filter(nitrogen_cycling == "Yes") -> ndata
 
 ## Filtering data to focus on nitrogen cycling microbes for kelp sites
+## So we can compare directly the abundance of nitrogen cycling microbes
 blade_data%>%
   filter(nitrogen_cycling == "Yes") -> bdata
 
-
+## We want to do a two-sample comparison to look at possible differences in microbe functionality between kelp species
+## In this case, we want to examine the differences between nitrogen cycling abundance found on the two kelp
 ## Shapiro test:
 ## Between kelp species
 ndata %>%
