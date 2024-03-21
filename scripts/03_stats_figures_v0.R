@@ -13,6 +13,7 @@ library(phyloseq)
 library(ggplot2)
 
 
+## Possible separate dataframe 
 cleanwrp = read.csv("data/processed/cleanwrp_dataframe.csv")
 View(cleanwrp)
 
@@ -30,6 +31,10 @@ View(cleanwrp)
 ## checking assumptions for individual t-test
 ## Levene's test to test for equal variance
 
+## anova test:
+## between species that are nitrogen fixing, not nitrogen fixing, and unknowns.
+anova
+
 
 ## t-test: ## variable names subject to change later on
 ## between species (sp) t-test: mean number of nitrogen fixing microbe species
@@ -42,7 +47,12 @@ print(klc_t_test)
 
 
 ## Plan for Figures:
-## Bar plots:
+## Bar plots: possible 2 graphs -> proportion
+## Y - axis: relative abundance
+## X- axis: nitrogen fixing (yes/no), unknown
+
+## stack bar chart: 
+
 ## variable subject to change:
 p<-ggplot(data=df, aes(x=dose, y=len)) +
   geom_bar(stat="identity")
