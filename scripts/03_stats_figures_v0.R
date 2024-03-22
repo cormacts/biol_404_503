@@ -141,6 +141,14 @@ sp_stackplot <- ggplot(species_data, aes(fill=nitrogen_cycling, y=asv_abundance,
 sp_stackplot
 ggsave(file = "figures/species_stackplot.PDF", plot = sp_stackplot, dpi = 500, units = "mm", width = 150, height = 100)
 
+# Observations from the plot: 
+# Looks as though Macrocystis has a larger abundance of nitrogen cycling microbes, which contradicts what we initially hypothesied, 
+# however it is possible that when comparing proportion of nitrogen cycling microbes
+# to the rest of the population, we may find different results. 
+# In addition, it is important to keep in mind that a large abundance of microbes 
+# found in both species are currently classified as "Unknown".
+# So there may be more nitrogen cycling species within that group. 
+
 ## Stack bar graph looking at asv abundance of the microbes involved in nitrogen cycling,
 ## -not involved in nitrogen cycling and unknown. Comparison between abundances on meristem and blade tip
 blade_stackplot <- ggplot(blade_data, aes(fill=nitrogen_cycling, y=asv_abundance, x=sample_type)) + 
@@ -154,6 +162,13 @@ blade_stackplot <- ggplot(blade_data, aes(fill=nitrogen_cycling, y=asv_abundance
 
 blade_stackplot
 ggsave(file = "figures/blade_stackplot.PDF", plot = blade_stackplot, dpi = 500, units = "mm", width = 150, height = 100)
+
+## Observations of plot:
+## There is a vast difference between abundance of nitrogen cycling on the kelp blade tip and meristem.
+## In contrast to our hypothesis, there is a higher abundance of nitrogen cycling microbes on the blade tip than the kelp meristem.
+## There are also in general, way more microbes on the blade tip than the meristem. Again keeping in mind that there are still many
+## microbes classified as "Unknown" and these could include nitrogen cycling microbes.
+
 
 ## Plans for species diversity plots: currently unsure how this will look at the moment
 ## Y-axis: Count of species
