@@ -442,7 +442,7 @@ sp_lt <- leveneTest(asv_abundance ~ description, ndata)
 print(sp_lt)
 ```
 
-p-value is greater than 0.05, not enough evidence to reject null hypothesis
+p-value is less than 0.05, therefore we can the reject null hypothesis, can apply two-sample 
 
 ```{r}
 ## For between meristem and blade tip:
@@ -455,11 +455,17 @@ p-value is less than 0.05, therefore we can reject the null hypothesis, can appl
 ```{r}
 ## Between species (sp)test: mean number of nitrogen fixing microbe species
 ## Using a Mann-Whitney U test as our data does not meet the assumptions of the t-test
-sp_wctest <- wilcox.test(asv_abundance ~ description, ndata)
-print(sp_wctest)
+# sp_test <- wilcox.test(asv_abundance ~ description, ndata)
+# print(sp_wctest)
+
+## currently having some discrepancies with values (individual group members are seeings different values so all of this is tentative to change as we move forward with our analysis)
+
+## Between species (sp) t-test: mean number of nitrogen fixing microbe species
+sp_ttest <- t.test(asv_abundance ~ description, ndata)
+print(sp_ttest)
 ```
 
-p-value is below 0.05, therefore we reject the null hypothesis
+p-value is below 0.05, therefore we reject the null hypothesis and consider the alternative hypothesis
 
 ```{r}
 ## Between kelp location (klc) t-test: mean number of nitrogen fixing microbe species
@@ -626,8 +632,13 @@ ggplot(plot_blade_proportions, aes(x=sample, y=proportions_22,
         axis.line = element_line(colour = "black"),
         axis.text.x = element_blank())+
   labs(y="Relative abundance", x="Sample", fill="Nitrogen cycling")
+```
 
-##### Same procedure but with full Weigel 2019 dataset and taxa with unknown nitrogen-cycling traits
+Same procedure below but with full Weigel 2019 dataset and taxa with unknown nitrogen-cycling traits:
+
+Taxaplot Graph for Kelp Species:
+
+```{r}
 
 ### Species comparison
 
@@ -655,6 +666,19 @@ ggplot(plot_sp_proportions_2, aes(x=sample, y=proportions_19,
         axis.line = element_line(colour = "black"),
         axis.text.x = element_blank())+
   labs(y="Relative abundance", x="Sample", fill="Nitrogen cycling")
+```
+
+
+
+
+
+Observations:
+Above graph depicts the relative microbe abundance for each sample within taken from each kelp species. This graph clarifies the uncertainties we had when looking at the previous graphs. From here, we can see that samples taken from the Nereocystis kelp seem to have a higher proportion of nitrogen cycling microbes in comparison to the Macrosystis kelp. This observation supports our initial hypothesis and makes it more clear that the reason why there seemed to be higher nitrogen cycling abundance in our previous graph was simply because there were more samples
+
+
+Taxaplot Graph for Blade locations:
+
+```{r}
 
 #### Blade location comparison
 
@@ -684,8 +708,4 @@ ggplot(plot_blade_proportions_2, aes(x=sample, y=proportions_19,
   labs(y="Relative abundance", x="Sample", fill="Nitrogen cycling")
 ```
 Observations:
-Above graph depicts the relative microbe abundance for each sample within taken from each kelp species. This graph clarifies the uncertainties we had when looking at the previous graphs. From here, we can see that samples taken from the Nereocystis kelp seem to have a higher proportion of nitrogen cycling microbes in comparison to the Macrosystis kelp. This observation supports our initial hypothesis and makes it more clear that the reason why there seemed to be higher nitrogen cycling abundance in our previous graph was simply because there were 
-
-
-
-Taxaplot Graph for Blade locations:
+Above graph depicts the relative microbe abundance for each sample within taken the meristem and blade tip. Similar to the stack bar plot, the tip samples seem to exhibit higher proportions of nitrogen cycling microbes. Which is again, contrary to what we initially hypothesized where we expected the meristem samples to have more nitrogen cycling microbes.
