@@ -448,6 +448,10 @@ sp_stackplot <- ggplot(species_data, aes(fill=nitrogen_cycling, y=asv_abundance,
 sp_stackplot
 ggsave(file = "figures/species_stackplot.PDF", plot = sp_stackplot, dpi = 500, units = "mm", width = 150, height = 100)
 ```
+Observations from the plot: 
+Looks as though Macrocystis has a larger abundance of nitrogen cycling microbes, however it is possible that when comparing proportion of nitrogen cycling microbes to the rest of the population, we may find different results. In addition, it is important to keep in mind that a large abundance of microbes found in both species are currently classified as "Unknown". So there may be more nitrogen cycling species within that group.
+
+
 
 Stack bar graph looking at asv abundance of the microbes involved in nitrogen cycling,
 not involved in nitrogen cycling and unknown. Comparison between abundances on meristem and blade tip
