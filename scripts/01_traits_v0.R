@@ -80,7 +80,7 @@ trait_data <- trait_data %>%
   slice(1) %>% 
   ungroup()
 
-#### Attempts to propogate data ####
+#### Old Attempts to propogate data ####
 
 # columns_to_process <- c("phylum", "class", "order", "family", "genus")
 # 
