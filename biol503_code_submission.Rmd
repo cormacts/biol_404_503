@@ -640,4 +640,9 @@ ggplot(plot_blade_proportions_2, aes(x=sample, y=proportions_19,
         axis.text.x = element_blank())+
   labs(y="Relative abundance", x="Sample", fill="Nitrogen cycling")
 ```
+Observations:
+Above graph depicts the relative microbe abundance for each sample within taken from each kelp species. This graph clarifies the uncertainties we had when looking at the previous graphs. From here, we can see that samples taken from the Nereocystis kelp seem to have a higher proportion of nitrogen cycling microbes in comparison to the Macrosystis kelp. This observation supports our initial hypothesis and makes it more clear that the reason why there seemed to be higher nitrogen cycling abundance in our previous graph was simply because there were 
 
+
+
+Taxaplot Graph for Blade locations:
