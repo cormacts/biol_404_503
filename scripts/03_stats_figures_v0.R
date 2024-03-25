@@ -222,8 +222,11 @@ ggsave(file = "figures/blade_stackplot.PDF", plot = blade_stackplot, dpi = 500, 
 ## Y-axis: Either Proportion (in decimals) or Percentage (%)
 ## X-axis: Group
 ## Plots: Proportions for each individual sample (box plot will be the average?)
-
 plot_blade_proportions %>%
+  filter(nitrogen_cycling == "proportion_Y_22") -> b_plot_data
+
+
+b_plot_data %>%
   ggplot( aes(x=blade_location, y=proportions_22, fill=nitrogen_cycling)) +
   geom_boxplot() +
   scale_fill_viridis(discrete = TRUE, alpha=0.6) +
