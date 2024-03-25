@@ -214,8 +214,8 @@ ggsave(file = "figures/blade_stackplot.PDF", plot = blade_stackplot, dpi = 500, 
 ## There are also in general, way more microbes on the blade tip than the meristem. Again keeping in mind that there are still many
 ## microbes classified as "Unknown" and these could include nitrogen cycling microbes.
 
+## Plans for box-plots:
+## Y-axis: Either Proportion (in decimals) or Percentage (%)
+## X-axis: Group
+## Plots: Proportions for each individual sample (box plot will be the average?)
 
-## Plans for species diversity plots: currently unsure how this will look at the moment
-## Y-axis: Count of species
-## X-axis: Macrocystis vs Nereocystis, Meristem vs Tip
-## wrap: nitrogen_cycling
