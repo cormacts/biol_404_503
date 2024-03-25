@@ -15,6 +15,10 @@ library(forcats)
 library(dplyr)
 library(ggpubr)
 library(rstatix)
+#install.packages("hrbrthemes")
+library(hrbrthemes)
+#install.packages("viridis")
+library(viridis)
 
 ## Using dataframe made via previous scripts
 
@@ -219,3 +223,15 @@ ggsave(file = "figures/blade_stackplot.PDF", plot = blade_stackplot, dpi = 500, 
 ## X-axis: Group
 ## Plots: Proportions for each individual sample (box plot will be the average?)
 
+plot_blade_proportions %>%
+  ggplot( aes(x=blade_location, y=proportions_22, fill=nitrogen_cycling)) +
+  geom_boxplot() +
+  scale_fill_viridis(discrete = TRUE, alpha=0.6) +
+  geom_jitter(color="black", size=0.4, alpha=0.9) +
+  theme_ipsum() +
+  theme(
+    legend.position="none",
+    plot.title = element_text(size=11)
+  ) +
+  ggtitle("Boxplot of Nitrogen Cycling Proportions") +
+  xlab("")
