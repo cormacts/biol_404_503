@@ -54,6 +54,59 @@ sum_sp_data <- species_data %>%
 ## double checking if the total asv_abundance values checks out:
 ##sum(species_data$asv_abundance) yes it did check out 
 
+## Revising the dataframe used for the statistical tests:
+new_sum_sp_data <- species_data %>%
+  group_by(Row.names, nitrogen_cycling, description) %>%
+  summarise_at(vars(asv_abundance),
+               list(sum_abundance = sum))
+
+# Pivoting so that the Y/N/Unknown abundances are columns with one row per sample
+pivoted_sum_sp_data <- new_sum_sp_data %>%
+  pivot_wider(names_from = nitrogen_cycling,values_from = sum_abundance)
+
+### Adding columns calculating: 
+# 1. Total abundance of all ASVs that are taxa covered by Weigel 2022 (functional traits paper)
+pivoted_sum_sp_data$total_abundance_Weigel2022 = pivoted_sum_sp_data$Yes+pivoted_sum_sp_data$No
+# 2. Total abundance of all ASVs covered by Weigel 2019 (original paper)
+pivoted_sum_sp_data$total_abundance_Weigel2019 = pivoted_sum_sp_data$Yes+pivoted_sum_sp_data$No+pivoted_sum_sp_data$Unknown
+# 3. Proportions for Y, N, and Unknown nitrogen cycling traits, out of either the 2022 or 2019 total
+pivoted_sum_sp_data$proportion_Y_22 = pivoted_sum_sp_data$Yes/pivoted_sum_sp_data$total_abundance_Weigel2022
+pivoted_sum_sp_data$proportion_N_22 = pivoted_sum_sp_data$No/pivoted_sum_sp_data$total_abundance_Weigel2022
+pivoted_sum_sp_data$proportion_Y_19 = pivoted_sum_sp_data$Yes/pivoted_sum_sp_data$total_abundance_Weigel2019
+pivoted_sum_sp_data$proportion_N_19 = pivoted_sum_sp_data$No/pivoted_sum_sp_data$total_abundance_Weigel2019
+pivoted_sum_sp_data$proportion_NA_19 = pivoted_sum_sp_data$Unknown/pivoted_sum_sp_data$total_abundance_Weigel2019
+
+## Filtering the data to focus specifically on nitrogen cycling species
+## So we can compare directly the abundance of nitrogen cycling microbes
+new_sum_sp_data%>%
+  filter(nitrogen_cycling == "Yes") -> ndata
+
+## Doing the same as above for blade data
+new_sum_blade_data <- blade_data %>%
+  group_by(Row.names, nitrogen_cycling,sample_type) %>%
+  summarise_at(vars(asv_abundance),
+               list(sum_abundance = sum))
+
+# Pivoting so that the Y/N/Unknown abundances are columns with one row per sample
+pivoted_sum_blade_data <- new_sum_blade_data %>%
+  pivot_wider(names_from = nitrogen_cycling,values_from = sum_abundance)
+
+# Adding columns calculating 
+# 1. Total abundance of all ASVs that are taxa covered by Weigel 2022 (functional traits paper)
+pivoted_sum_blade_data$total_abundance_Weigel2022 = pivoted_sum_blade_data$Yes+pivoted_sum_blade_data$No
+# 2. Total abundance of all ASVs covered by Weigel 2019 (original paper)
+pivoted_sum_blade_data$total_abundance_Weigel2019 = pivoted_sum_blade_data$Yes+pivoted_sum_blade_data$No+pivoted_sum_blade_data$Unknown
+# 3. Proportions for Y, N, and Unknown nitrogen cycling traits, out of either the 2022 or 2019 total
+pivoted_sum_blade_data$proportion_Y_22 = pivoted_sum_blade_data$Yes/pivoted_sum_blade_data$total_abundance_Weigel2022
+pivoted_sum_blade_data$proportion_N_22 = pivoted_sum_blade_data$No/pivoted_sum_blade_data$total_abundance_Weigel2022
+pivoted_sum_blade_data$proportion_Y_19 = pivoted_sum_blade_data$Yes/pivoted_sum_blade_data$total_abundance_Weigel2019
+pivoted_sum_blade_data$proportion_N_19 = pivoted_sum_blade_data$No/pivoted_sum_blade_data$total_abundance_Weigel2019
+pivoted_sum_blade_data$proportion_NA_19 = pivoted_sum_blade_data$Unknown/pivoted_sum_blade_data$total_abundance_Weigel2019
+
+## Filtering data to focus on nitrogen cycling microbes for kelp sites
+## So we can compare directly the abundance of nitrogen cycling microbes
+new_sum_blade_data%>%
+  filter(nitrogen_cycling == "Yes") -> bdata
 
 ## Plan for Code:
 ## initial statistical analysis: 
@@ -69,16 +122,6 @@ sum_sp_data <- species_data %>%
 ## Okay, above method isn't really working for t-test purposes...
 
 
-## Filtering the data to focus specifically on nitrogen cycling species
-## So we can compare directly the abundance of nitrogen cycling microbes
-species_data%>%
-  filter(nitrogen_cycling == "Yes") -> ndata
-
-## Filtering data to focus on nitrogen cycling microbes for kelp sites
-## So we can compare directly the abundance of nitrogen cycling microbes
-blade_data%>%
-  filter(nitrogen_cycling == "Yes") -> bdata
-
 ## We want to do a two-sample comparison to look at possible differences in microbe functionality between kelp species
 ## In this case, we want to examine the differences between nitrogen cycling abundance found on the two kelp
 
@@ -87,27 +130,29 @@ blade_data%>%
 ## Between kelp species
 ndata %>%
   group_by(description) %>%
-  shapiro_test(asv_abundance)
-## Output from above, p-value < 0.05 which implies distribution of data is significantly
-## different from normal distribution, cannot assume normality
+  shapiro_test(sum_abundance)
+## Output from above, p-value > 0.05 which implies distribution of data is under normal distribution
+## Can assume normality
 
 ## Between meristem and blade tip
 bdata %>%
   group_by(sample_type) %>%
-  shapiro_test(asv_abundance)
-## Output from above, p-value < 0.05 which implies distribution of data is significantly
-## different from normal distribution, cannot assume normality
+  shapiro_test(sum_abundance)
+## Output from above, p-value > 0.05 which implaies distribution of data is under normal disribution
+## Can assume normality
 
 ## Levene's test for homogeneity of variances:
 ## For between kelp species:
-sp_lt <- leveneTest(asv_abundance ~ description, ndata)
+sp_lt <- leveneTest(sum_abundance ~ description, ndata)
 print(sp_lt)
-## p-value is greater than 0.05, not enough evidence to reject null hypothesis
+## p-value is less than 0.05, therefore we can reject the null hypothesis: We can continue forward using a two-sample t-test
 
 ## For between meristem and blade tip:
-b_lt <- leveneTest(asv_abundance ~ sample_type, bdata)
+b_lt <- leveneTest(sum_abundance ~ sample_type, bdata)
 print(b_lt)
-## p-value is less than 0.05, therefore we can reject the null hypothesis, can apply two-sample t-test
+## p-value is greater than 0.05, therefore we cannot reject the null hypothesis:
+## will perform a Mann-Whitney U test
+
 ## --------------------------------------------------
 
 ## Between species (sp)test: mean number of nitrogen fixing microbe species
