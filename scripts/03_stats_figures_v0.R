@@ -222,10 +222,20 @@ ggsave(file = "figures/blade_stackplot.PDF", plot = blade_stackplot, dpi = 500, 
 ## Y-axis: Either Proportion (in decimals) or Percentage (%)
 ## X-axis: Group
 ## Plots: Proportions for each individual sample (box plot will be the average?)
+
+## Box plot comparing proportions of nitrogen cycling microbes between Macrocystis and Nereocystis
 plot_blade_proportions %>%
   filter(nitrogen_cycling == "proportion_Y_22") -> b_plot_data
 
 
+
+
+## Box plot comparing proportions of nitrogen cycling microbes between kelp meristem and blade tip samples
+## Filtering for nitrogen cycling microbes
+plot_blade_proportions %>%
+  filter(nitrogen_cycling == "proportion_Y_22") -> b_plot_data
+
+## Code to plot the graph
 b_plot_data %>%
   ggplot( aes(x=blade_location, y=proportions_22, fill=nitrogen_cycling)) +
   geom_boxplot() +
