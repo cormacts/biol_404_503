@@ -105,32 +105,33 @@ cleanwrp = phyloseq(sample_data(wrp.high@sam_data),
 ## sample_data() Sample Data: [ 248 samples by 31 sample variables ]
 ## tax_table() Taxonomy Table: [ 337 taxa by 8 taxonomic ranks ]
 
-# Rarefaction ####
-  # The rarecurve code below generates a rarecurve for the data, but takes a very long time to do so, leaving it here commented out for later use if necessary, but shouldnt need to be run for proper functioning of the script
-# rarecurve(
-#   as.data.frame( ## 3. Turn the matrix back into a dataframe
-#     t( ## 2. turn the otu.clean matrix 90 degrees to have the correct orientation
-#       as.matrix( ## 1. turn the otu.clean dataframe into a matrix
-#         otu.clean))), ## 0. the dataframe we are doing stuff to
-#   step=50, cex=0.5, label=FALSE) ## now that the data are formatted, sample the reads
-
-#view(cleanwrp@sam_data)
-# Deciding 1208 is my cutoff
-# There are not very many obs below this point, however it is quite low
-# In the future consider revising this number
-
-# Setting the seed for my rarefaction
-set.seed(5)
-
-# completing the rarefaction
-rare.wrp <- rarefy_even_depth(cleanwrp, sample.size = 1208)
-
-rare.wrp@sam_data$rare_sample_sums = sample_sums(rare.wrp)
-#summary(rare.wrp@sam_data$rare_sample_sums)
-# confirming rarefaction occured
-
-## save rarefied dataframe
-write_rds(rare.wrp, "data/processed/wrp_rare.RDS")
+# Rarefaction (Remove) ####
+#################### Deciding not to rarify - will analyze proportions
+#   # The rarecurve code below generates a rarecurve for the data, but takes a very long time to do so, leaving it here commented out for later use if necessary, but shouldnt need to be r9un for proper functioning of the script
+# # rarecurve(
+# #   as.data.frame( ## 3. Turn the matrix back into a dataframe
+# #     t( ## 2. turn the otu.clean matrix 90 degrees to have the correct orientation
+# #       as.matrix( ## 1. turn the otu.clean dataframe into a matrix
+# #         otu.clean))), ## 0. the dataframe we are doing stuff to
+# #   step=50, cex=0.5, label=FALSE) ## now that the data are formatted, sample the reads
+# 
+# #view(cleanwrp@sam_data)
+# # Deciding 1208 is my cutoff
+# # There are not very many obs below this point, however it is quite low
+# # In the future consider revising this number
+# 
+# # Setting the seed for my rarefaction
+# set.seed(5)
+# 
+# # completing the rarefaction
+# rare.wrp <- rarefy_even_depth(cleanwrp, sample.size = 1208)
+# 
+# rare.wrp@sam_data$rare_sample_sums = sample_sums(rare.wrp)
+# #summary(rare.wrp@sam_data$rare_sample_sums)
+# # confirming rarefaction occured
+# 
+# ## save rarefied dataframe
+# write_rds(rare.wrp, "data/processed/wrp_rare.RDS")
 
 
 # creating the dephyloseq function ####
@@ -159,9 +160,9 @@ dephyloseq = function(phylo_obj){
 }
 
 # choosing to use Rarefied data going forward
-  # leaving this here as a method to quickly decide to instead use non-rarefied if that is preferable
-  # working.wrp = cleanwrap
-working.wrp = rare.wrp 
+  # leaving this here as a method to quickly decide to instead use rarefied if that is preferable
+  #working.wrp = rare.wrp 
+working.wrp = cleanwrp
 
 ## summarize at rank 6 (or change this to be the kans you have in your dataset)
 working.wrp = tax_glom(working.wrp, taxrank = "genus")
