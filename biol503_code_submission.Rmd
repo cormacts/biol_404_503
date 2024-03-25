@@ -708,4 +708,4 @@ ggplot(plot_blade_proportions_2, aes(x=sample, y=proportions_19,
   labs(y="Relative abundance", x="Sample", fill="Nitrogen cycling")
 ```
 Observations:
-Above graph depicts the relative microbe abundance for each sample within taken the meristem and blade tip. Similar to the stack bar plot, the tip samples seem to exhibit higher proportions of nitrogen cycling microbes. Which is again, contrary to what we initially hypothesized where we expected the meristem samples to have more nitrogen cycling microbes.
+Above graph depicts the relative microbe abundance for each sample taken from the meristem and blade tip. Similar to the stack bar plot, the tip samples seem to exhibit higher proportions of nitrogen cycling microbes. Which is again, contrary to what we initially hypothesized where we expected the meristem samples to have more nitrogen cycling microbes.
