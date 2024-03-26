@@ -135,11 +135,11 @@ new_sum_blade_data%>%
 ndata %>%
   group_by(description) %>%
   shapiro_test(sum_abundance)
-## (Is this the non-rarified data?) 
+## (Is this the non-rarefied data?) 
 ## Output from above, p-values < 0.05, which implies distribution of data is not normal
 ## Cannot assume normality
 
-## (Comment from previous testing with rarified data)
+## (Comment from previous testing with rarefied data)
 ## Output from above, p-value > 0.05 which implies distribution of data is under normal distribution
 ## Can assume normality
 
@@ -147,13 +147,13 @@ ndata %>%
 bdata %>%
   group_by(sample_type) %>%
   shapiro_test(sum_abundance)
-## (Is this the non-rarified data?) 
+## (Is this the non-rarefied data?) 
 ## Output from above, p-value < 0.05 for meristem,p-value > 0.05 for tip
 ## which implies distribution of data is not normal for meristem and normal for tip
 ## Cannot assume normality as the two groups differ
 
-## (Comment from previous testing with rarified data)
-## Output from above, p-value > 0.05 which implaies distribution of data is under normal disribution
+## (Comment from previous testing with rarefied data)
+## Output from above, p-value > 0.05 which implies distribution of data is under normal distribution
 ## Can assume normality
 
 ## Levene's test for homogeneity of variances:
