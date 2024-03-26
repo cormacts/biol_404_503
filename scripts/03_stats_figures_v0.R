@@ -224,8 +224,23 @@ ggsave(file = "figures/blade_stackplot.PDF", plot = blade_stackplot, dpi = 500, 
 ## Plots: Proportions for each individual sample (box plot will be the average?)
 
 ## Box plot comparing proportions of nitrogen cycling microbes between Macrocystis and Nereocystis
-plot_blade_proportions %>%
-  filter(nitrogen_cycling == "proportion_Y_22") -> b_plot_data
+## Filterng for nitrogen cycling microbes
+plot_sp_proportions %>%
+  filter(nitrogen_cycling == "proportion_Y_22") -> sp_plot_data
+
+## Code to plot graph
+sp_plot_data %>%
+  ggplot( aes(x=species, y=proportions_22, fill=species)) +
+  geom_boxplot() +
+  scale_fill_viridis(discrete = TRUE, alpha=0.6) +
+  geom_jitter(color="black", size=0.4, alpha=0.9) +
+  theme_ipsum() +
+  theme(
+    legend.position="none",
+    plot.title = element_text(size=11)
+  ) +
+  ggtitle("Boxplot of Nitrogen Cycling Proportions") +
+  xlab("")
 
 
 
@@ -237,7 +252,7 @@ plot_blade_proportions %>%
 
 ## Code to plot the graph
 b_plot_data %>%
-  ggplot( aes(x=blade_location, y=proportions_22, fill=nitrogen_cycling)) +
+  ggplot( aes(x=blade_location, y=proportions_22, fill=blade_location)) +
   geom_boxplot() +
   scale_fill_viridis(discrete = TRUE, alpha=0.6) +
   geom_jitter(color="black", size=0.4, alpha=0.9) +
