@@ -66,7 +66,7 @@ new_sum_sp_data <- species_data %>%
 
 # Pivoting so that the Y/N/Unknown abundances are columns with one row per sample
 pivoted_sum_sp_data <- new_sum_sp_data %>%
-  pivot_wider(names_from = nitrogen_cycling,values_from = sum_abundance)
+  pivot_wider(names_from = nitrogen_cycling, values_from = sum_abundance)
 
 ### Adding columns calculating: 
 # 1. Total abundance of all ASVs that are taxa covered by Weigel 2022 (functional traits paper)
@@ -135,6 +135,11 @@ new_sum_blade_data%>%
 ndata %>%
   group_by(description) %>%
   shapiro_test(sum_abundance)
+## (Is this the non-rarified data?) 
+## Output from above, p-values < 0.05, which implies distribution of data is not normal
+## Cannot assume normality
+
+## (Comment from previous testing with rarified data)
 ## Output from above, p-value > 0.05 which implies distribution of data is under normal distribution
 ## Can assume normality
 
@@ -142,6 +147,12 @@ ndata %>%
 bdata %>%
   group_by(sample_type) %>%
   shapiro_test(sum_abundance)
+## (Is this the non-rarified data?) 
+## Output from above, p-value < 0.05 for meristem,p-value > 0.05 for tip
+## which implies distribution of data is not normal for meristem and normal for tip
+## Cannot assume normality as the two groups differ
+
+## (Comment from previous testing with rarified data)
 ## Output from above, p-value > 0.05 which implaies distribution of data is under normal disribution
 ## Can assume normality
 
@@ -149,26 +160,31 @@ bdata %>%
 ## For between kelp species:
 sp_lt <- leveneTest(sum_abundance ~ description, ndata)
 print(sp_lt)
-## p-value is less than 0.05, therefore we can reject the null hypothesis: We can continue forward using a two-sample t-test
+## p-value > 0.05, therefore we cannot reject the null hypothesis: 
+## Cannot use a two-sample t-test
+## Will perform a Mann-Whitney U test
 
 ## For between meristem and blade tip:
 b_lt <- leveneTest(sum_abundance ~ sample_type, bdata)
 print(b_lt)
 ## p-value is greater than 0.05, therefore we cannot reject the null hypothesis:
-## will perform a Mann-Whitney U test
+## Cannot use a two-sample t-test
+## Will perform a Mann-Whitney U test
 
 ## --------------------------------------------------
 
-## Between species (sp)test: mean number of nitrogen fixing microbe species
+## Between species (sp)test: mean proportion of nitrogen-fixing microbe species
 ## Using a Mann-Whitney U test as our data does not meet the assumptions of the t-test
-sp_wctest <- wilcox.test(asv_abundance ~ description, ndata)
+sp_wctest <- wilcox.test(sum_abundance ~ description, ndata)
 print(sp_wctest)
-## p-value is below 0.05, therefore we reject the null hypothesis
+## p-value > 0.05, therefore we cannot reject the null hypothesis
 
-## Between kelp location (klc) t-test: mean number of nitrogen fixing microbe species
-b_ttest <- t.test(asv_abundance ~ sample_type, bdata)
-print(b_ttest)
-# p-value is below 0.05, therefore we reject the null hypothesis and consider the alternative hypothesis
+## Between kelp location (meristem and blade tip) test: mean proportion of nitrogen-fixing microbe species
+## Using a Mann-Whitney U test as our data does not meet the assumptions of the t-test
+b_wctest <- wilcox.test(sum_abundance ~ sample_type, bdata)
+print(b_wctest)
+## p-value < 0.05, therefore we can reject the null hypothesis and embrace the alternative hypothesis
+
 
 ## Plan for Figures:
 ## Bar plots: possible 2 graphs -> proportion
@@ -218,6 +234,10 @@ ggsave(file = "figures/blade_stackplot.PDF", plot = blade_stackplot, dpi = 500, 
 ## There are also in general, way more microbes on the blade tip than the meristem. Again keeping in mind that there are still many
 ## microbes classified as "Unknown" and these could include nitrogen cycling microbes.
 
+
+## This code has to be run after Lydia's proportion code (for the proportion taxaplots)
+
+
 ## Plans for box-plots:
 ## Y-axis: Either Proportion (in decimals) or Percentage (%)
 ## X-axis: Group
@@ -232,17 +252,16 @@ plot_sp_proportions %>%
 sp_plot_data %>%
   ggplot( aes(x=species, y=proportions_22, fill=species)) +
   geom_boxplot() +
+  labs(x = "Kelp Species", y = "Proportion of Microbe Species") +
   scale_fill_viridis(discrete = TRUE, alpha=0.6) +
   geom_jitter(color="black", size=0.4, alpha=0.9) +
   theme_ipsum() +
   theme(
     legend.position="none",
-    plot.title = element_text(size=11)
+    plot.title = element_text(size=12)
   ) +
   ggtitle("Boxplot of Nitrogen Cycling Proportions") +
   xlab("")
-
-
 
 
 ## Box plot comparing proportions of nitrogen cycling microbes between kelp meristem and blade tip samples
@@ -254,6 +273,7 @@ plot_blade_proportions %>%
 b_plot_data %>%
   ggplot( aes(x=blade_location, y=proportions_22, fill=blade_location)) +
   geom_boxplot() +
+  labs(x = "Sample Location", y = "Proportion of Microbe Species") +
   scale_fill_viridis(discrete = TRUE, alpha=0.6) +
   geom_jitter(color="black", size=0.4, alpha=0.9) +
   theme_ipsum() +
