@@ -1,22 +1,23 @@
 ### BIOL 403/503 project ###
 # Condensed code for submission
 
-### Initial setup
+### Initial setup ###
 
-## Loading Libraries
+# Loading Libraries
 library(tidyverse)
 library(phyloseq)
 library(vegan)
 library(plyr)
 library(qualpalr)
 library(ggpubr)
+library(dplyr)
 
-## Reading in data from mar2018
+# Reading in data from Weigel 2019
 wrp = readRDS("data/raw/W2019_and_RP2022_unfiltered_phyloseq.RDS")
 
-# Filtering ####
-## remove off target taxa ####
-### We want only Bacteria and Archea within our data
+# Filtering
+
+# 1. Removing off target taxa (we are considering only Bacteria and Archaea)
 wrp = subset_taxa(wrp,
                   domain!="Unassigned"&
                     order!="Chloroplast" &
@@ -24,14 +25,11 @@ wrp = subset_taxa(wrp,
                     family!="Mitochondria" &
                     domain!="Eukaryota")
 
-## removing samples with low number of reads ####
-# sampleSums(wrp) # This code prints the sample sums
-
-### Add the sample sums of the reads to meta data column
+# 2. Removing samples with low number of reads
+# Adding the sample sums of the reads to meta data column
 wrp@sam_data$sample_sums_unfiltered = as.numeric(sample_sums(wrp))
-#### relatively continuous increase in sample, going to use 800 as the cutoff 
-
-## Remove all samples with less than 800 reads
+### We see a relatively continuous increase in sample, so will use 800 as the cutoff.
+# Removing all samples with less than 800 reads
 wrp.high <- prune_samples(sample_sums(wrp) >= 800, wrp)
 # Decided to use 5000, big jump from lowest value to a pretty continuous series of values
 
@@ -154,4 +152,137 @@ community_data <- wrp.processed.df %>%
 
 # Writing to a file ####
 write.csv(community_data, "data/processed/community_dataframe.csv")
+
+
+
+### Setting up the functional trait dataset
+
+## Importing Data ####
+traits <- read.csv("data/raw/msystems.01422-21-s0005.csv")
+
+## Condensing categories of traits into single columns ####
+
+traits <- traits %>%
+  mutate_at(vars(starts_with("Dissimilatory_nitrate_reduction_")), ~coalesce(., "NA")) %>%
+  mutate(dissimilatory_nitrate_reduction = if_else(rowSums(select(., starts_with("Dissimilatory_nitrate_reduction_")) == "Y", na.rm = TRUE) > 0, "Y", ""))
+
+traits <- traits %>%
+  mutate_at(vars(starts_with("Assimilatory_nitrate_reduction_")), ~coalesce(., "NA")) %>%
+  mutate(assimilatory_nitrate_reduction = if_else(rowSums(select(., starts_with("Assimilatory_nitrate_reduction_")) == "Y", na.rm = TRUE) > 0, "Y", ""))
+
+traits <- traits %>%
+  mutate_at(vars(starts_with("Denitrification")), ~coalesce(., "NA")) %>%
+  mutate(denitrification = if_else(rowSums(select(., starts_with("Denitrification")) == "Y", na.rm = TRUE) > 0, "Y", ""))
+
+traits <- traits %>%
+  mutate_at(vars(starts_with("Nitrogen_fixation")), ~coalesce(., "NA")) %>%
+  mutate(nitrogen_fixation = if_else(rowSums(select(., starts_with("Nitrogen_fixation")) == "Y", na.rm = TRUE) > 0, "Y", ""))
+
+traits <- traits %>%
+  mutate_at(vars(starts_with("Nitrification")), ~coalesce(., "NA")) %>%
+  mutate(nitrification = if_else(rowSums(select(., starts_with("Nitrification")) == "Y", na.rm = TRUE) > 0, "Y", ""))
+
+## Condensing categories into one single nitrogen-related column ####
+
+traits <- traits %>%
+  mutate_at(vars(c("dissimilatory_nitrate_reduction","assimilatory_nitrate_reduction","denitrification","nitrogen_fixation","nitrification")), ~coalesce(., "NA")) %>%
+  mutate(nitrogen_cycling = if_else(rowSums(select(., c("dissimilatory_nitrate_reduction","assimilatory_nitrate_reduction","denitrification","nitrogen_fixation","nitrification")) == "Y", na.rm = TRUE) > 0, "Y", ""))
+
+## Creating a new condensed dataframe, with only one variable for nitrogen cycling ####
+
+condensed_traits <- traits[1:66,c("MAG_name", "phylum","class","order","family","genus","nitrogen_cycling")]
+
+## Finding lowest taxanomic data ####
+# Creating function to remove blank strings and replace with NAs
+replace_empty_with_na <- function(x) {
+  x[x == ""] <- NA
+  return(x)
+}
+
+replace_na_with_n <- function(x) {
+  x[is.na(x)] <- "N"
+  return(x)
+}
+
+# Applying the above function to our dataset
+condensed_traits <- condensed_traits %>%
+  mutate(across(everything(), replace_empty_with_na))
+
+trait_data <- condensed_traits %>%
+  rowwise() %>%
+  mutate(lowest_rank = if_else(!is.na(genus), genus,
+                               if_else(!is.na(family), family,
+                                       if_else(!is.na(order), order,
+                                               if_else(!is.na(class), class,
+                                                       if_else(!is.na(phylum), phylum, NA_character_))))))
+
+trait_data <- trait_data %>%
+  mutate(nitrogen_cycling = replace_na_with_n(nitrogen_cycling))
+
+# Dealing with repeat cases of lowest_rank
+# going to merge these observations into a single value for each lowest_rank
+# MAJOR DEBATE HERE: Choosing to make merged rows, such that if the rows ever say Y to N cycling, they always do
+
+trait_data <- trait_data %>% arrange(desc(nitrogen_cycling))
+trait_data <- trait_data %>% 
+  group_by(lowest_rank) %>% 
+  slice(1) %>% 
+  ungroup()
+
+
+### Merging the two datasets
+
+# trait_data is the dataframe with known taxa and traits
+# community_data is the dataframe is the collection of data relating to commmunity composition and shifts based on treatment.
+
+# We will want to join these two dataframes using some version of the join() function
+# inner_join() keeps only observations that exist in both - might lose a lot of data
+# left_join() keeps observations in the left (first) dataframe
+# full_join() keeps all observations in both
+
+# My (elias') thought: either inner_join - and work with only the ones that have both
+# or, we could try left join, and keep all the observations from the original data, and throw out non-relevant trait_data
+
+all_merged <- left_join(community_data, trait_data, by = "lowest_rank")
+
+# Creating two sets of data one for meristem v tip and one for host type
+# In either case filtering will need to happen
+## Filtering for relevant samples
+# In species_data - only want macro and nereo (maybe control)
+# In blade_data - only want nereo base and nereo tip (whats the differnec between "tip" and "tip_swab")
+## Filtering for relevant sites 
+# Either question can only be asked using data from specific sites - need to filter for these locations
+
+both_species_locations <- c("Bullman", "Cape_Johnson", "Destruction_Island", 
+                            "Koitlah", "Sekiu")
+base_and_tip <- c("Nereocystis_tip", "Nereocystis_base", "Nereocystis_tip_swab",
+                  "Nereocystis_base_swab")
+
+# The below makes species_data, with only samples from the above listed locations, where both kelp species were sampled
+species_data <- all_merged %>%
+  select(Row.names, description, host_common_name, location, sample_type_user, asv_abundance, lowest_rank, nitrogen_cycling) %>%
+  filter(description == "Macrocystis" | description == "Nereocystis") %>%
+  filter(location %in% both_species_locations)
+
+# The below makes blade_data, with only samples from Tatoosh and from the blade meristem and tip, also makes a new simplified 
+blade_data <- all_merged %>%
+  select(
+    Row.names,
+    description,
+    host_common_name,
+    location,
+    sample_type_user,
+    asv_abundance,
+    lowest_rank,
+    nitrogen_cycling
+  ) %>%
+  filter(description %in% base_and_tip) %>%
+  filter(location == "Tatoosh" |
+           location == "Tatoosh_Main_Beach") %>%
+  mutate(sample_type = if_else(
+    grepl("tip", description),
+    "tip",
+    if_else(grepl("base", description), "meristem", NA_character_)
+  )) 
+
 
