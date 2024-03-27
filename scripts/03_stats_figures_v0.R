@@ -58,7 +58,7 @@ sum_sp_data <- species_data %>%
 ## double checking if the total asv_abundance values checks out:
 ##sum(species_data$asv_abundance) yes it did check out 
 
-## Revising the dataframe used for the statistical tests:
+## Revising the dataframe used for the statistical tests using Lydia's code:
 new_sum_sp_data <- species_data %>%
   group_by(Row.names, nitrogen_cycling, description) %>%
   summarise_at(vars(asv_abundance),
@@ -80,10 +80,17 @@ pivoted_sum_sp_data$proportion_Y_19 = pivoted_sum_sp_data$Yes/pivoted_sum_sp_dat
 pivoted_sum_sp_data$proportion_N_19 = pivoted_sum_sp_data$No/pivoted_sum_sp_data$total_abundance_Weigel2019
 pivoted_sum_sp_data$proportion_NA_19 = pivoted_sum_sp_data$Unknown/pivoted_sum_sp_data$total_abundance_Weigel2019
 
-## Filtering the data to focus specifically on nitrogen cycling species
-## So we can compare directly the abundance of nitrogen cycling microbes
-new_sum_sp_data%>%
-  filter(nitrogen_cycling == "Yes") -> ndata
+## Lydia's code for pivoting and calculating proportions:
+pivoted_sum_sp_data$sample_ID = paste(pivoted_sum_sp_data$description,pivoted_sum_sp_data$Row.names)
+plot_sp_proportions <- pivoted_sum_sp_data[,c("sample_ID","proportion_Y_22","proportion_N_22")]
+plot_sp_proportions <- plot_sp_proportions %>%
+  pivot_longer(!sample_ID, names_to = "nitrogen_cycling",values_to = "proportions_22")
+plot_sp_proportions <- plot_sp_proportions %>% 
+  separate(sample_ID,c("species", "sample"), sep = " ", remove = TRUE)
+
+## Filtering for nitrogen cycling microbe proportion for stat tests:
+sp_stat_data <- plot_sp_proportions %>%
+  filter(nitrogen_cycling == "proportion_Y_22")
 
 ## Doing the same as above for blade data
 new_sum_blade_data <- blade_data %>%
@@ -107,10 +114,17 @@ pivoted_sum_blade_data$proportion_Y_19 = pivoted_sum_blade_data$Yes/pivoted_sum_
 pivoted_sum_blade_data$proportion_N_19 = pivoted_sum_blade_data$No/pivoted_sum_blade_data$total_abundance_Weigel2019
 pivoted_sum_blade_data$proportion_NA_19 = pivoted_sum_blade_data$Unknown/pivoted_sum_blade_data$total_abundance_Weigel2019
 
-## Filtering data to focus on nitrogen cycling microbes for kelp sites
-## So we can compare directly the abundance of nitrogen cycling microbes
-new_sum_blade_data%>%
-  filter(nitrogen_cycling == "Yes") -> bdata
+## Creating new DF for proportions
+pivoted_sum_blade_data$sample_ID = paste(pivoted_sum_blade_data$sample_type,pivoted_sum_blade_data$Row.names)
+plot_blade_proportions <- pivoted_sum_blade_data[,c("sample_ID","proportion_Y_22","proportion_N_22")]
+plot_blade_proportions <- plot_blade_proportions %>%
+  pivot_longer(!sample_ID, names_to = "nitrogen_cycling",values_to = "proportions_22")
+plot_blade_proportions <- plot_blade_proportions %>% 
+  separate(sample_ID,c("blade_location", "sample"), sep = " ", remove = TRUE)
+
+## Filtering for nitrogen cycling microbe proportion for stat tests:
+blade_stat_data <- plot_blade_proportions %>%
+  filter(nitrogen_cycling == "proportion_Y_22")
 
 ## Plan for Code:
 ## initial statistical analysis: 
@@ -132,40 +146,29 @@ new_sum_blade_data%>%
 ## Testing for assumptions below --------------------
 ## Shapiro test:
 ## Between kelp species
-ndata %>%
-  group_by(description) %>%
-  shapiro_test(sum_abundance)
-## (Is this the non-rarefied data?) 
-## Output from above, p-values < 0.05, which implies distribution of data is not normal
-## Cannot assume normality
-
+sp_stat_data %>%
+  group_by(species) %>%
+  shapiro_test(proportions_22)
 ## (Comment from previous testing with rarefied data)
 ## Output from above, p-value > 0.05 which implies distribution of data is under normal distribution
 ## Can assume normality
 
 ## Between meristem and blade tip
-bdata %>%
-  group_by(sample_type) %>%
-  shapiro_test(sum_abundance)
-## (Is this the non-rarefied data?) 
-## Output from above, p-value < 0.05 for meristem,p-value > 0.05 for tip
-## which implies distribution of data is not normal for meristem and normal for tip
+blade_stat_data %>%
+  group_by(blade_location) %>%
+  shapiro_test(proportions_22)
+## Output from above, p-value < 0.05, implies data is not under normal distribution
 ## Cannot assume normality as the two groups differ
-
-## (Comment from previous testing with rarefied data)
-## Output from above, p-value > 0.05 which implies distribution of data is under normal distribution
-## Can assume normality
 
 ## Levene's test for homogeneity of variances:
 ## For between kelp species:
-sp_lt <- leveneTest(sum_abundance ~ description, ndata)
+sp_lt <- leveneTest(proportions_22 ~ species, sp_stat_data)
 print(sp_lt)
-## p-value > 0.05, therefore we cannot reject the null hypothesis: 
-## Cannot use a two-sample t-test
-## Will perform a Mann-Whitney U test
+## p-value < 0.05, therefore we can reject the null hypothesis: 
+## Can use a two-sample t-test
 
 ## For between meristem and blade tip:
-b_lt <- leveneTest(sum_abundance ~ sample_type, bdata)
+b_lt <- leveneTest(proportions_22 ~ blade_location, blade_stat_data)
 print(b_lt)
 ## p-value is greater than 0.05, therefore we cannot reject the null hypothesis:
 ## Cannot use a two-sample t-test
@@ -174,14 +177,14 @@ print(b_lt)
 ## --------------------------------------------------
 
 ## Between species (sp)test: mean proportion of nitrogen-fixing microbe species
-## Using a Mann-Whitney U test as our data does not meet the assumptions of the t-test
-sp_wctest <- wilcox.test(sum_abundance ~ description, ndata)
-print(sp_wctest)
+## Using a two-sample t-test as the data passed all the assumption requirements
+sp_ttest <- t.test(proportions_22 ~ species, sp_stat_data)
+print(sp_ttest)
 ## p-value > 0.05, therefore we cannot reject the null hypothesis
 
 ## Between kelp location (meristem and blade tip) test: mean proportion of nitrogen-fixing microbe species
 ## Using a Mann-Whitney U test as our data does not meet the assumptions of the t-test
-b_wctest <- wilcox.test(sum_abundance ~ sample_type, bdata)
+b_wctest <- wilcox.test(proportions_22 ~ blade_location, blade_stat_data)
 print(b_wctest)
 ## p-value < 0.05, therefore we can reject the null hypothesis and embrace the alternative hypothesis
 
@@ -244,12 +247,10 @@ ggsave(file = "figures/blade_stackplot.PDF", plot = blade_stackplot, dpi = 500, 
 ## Plots: Proportions for each individual sample (box plot will be the average?)
 
 ## Box plot comparing proportions of nitrogen cycling microbes between Macrocystis and Nereocystis
-## Filterng for nitrogen cycling microbes
-plot_sp_proportions %>%
-  filter(nitrogen_cycling == "proportion_Y_22") -> sp_plot_data
+## Using the stat dataframe made from above
 
 ## Code to plot graph
-sp_plot_data %>%
+sp_stat_data %>%
   ggplot( aes(x=species, y=proportions_22, fill=species)) +
   geom_boxplot() +
   labs(x = "Kelp Species", y = "Proportion of Microbe Species") +
@@ -263,14 +264,18 @@ sp_plot_data %>%
   ggtitle("Boxplot of Nitrogen Cycling Proportions") +
   xlab("")
 
+## Observations:
+## There does not seem to be a large difference in mean proportions of nitrogen cycling 
+## species between the two kelp species.
+## This is not the expected outcome our hypothesis initially predicts.
+
 
 ## Box plot comparing proportions of nitrogen cycling microbes between kelp meristem and blade tip samples
-## Filtering for nitrogen cycling microbes
-plot_blade_proportions %>%
-  filter(nitrogen_cycling == "proportion_Y_22") -> b_plot_data
+## Using the stat dataframe made from above
+
 
 ## Code to plot the graph
-b_plot_data %>%
+blade_stat_data %>%
   ggplot( aes(x=blade_location, y=proportions_22, fill=blade_location)) +
   geom_boxplot() +
   labs(x = "Sample Location", y = "Proportion of Microbe Species") +
@@ -283,3 +288,8 @@ b_plot_data %>%
   ) +
   ggtitle("Boxplot of Nitrogen Cycling Proportions") +
   xlab("")
+
+## Observations:
+## Looking at the boxplot, the mean proportion of microbe species in meristem is much higher
+## than the mean proportion samples from the tip.
+## This aligns with our initial hypothesis.
