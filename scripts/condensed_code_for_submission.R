@@ -24,6 +24,7 @@ library(viridis)
 wrp = readRDS("data/raw/W2019_and_RP2022_unfiltered_phyloseq.RDS")
 
 ### Filtering ###
+# Code adapted from BIOL 403/503 Lab 2
 
 ## 1. Removing off target taxa (we are considering only Bacteria and Archaea)
 wrp = subset_taxa(wrp,
@@ -34,36 +35,36 @@ wrp = subset_taxa(wrp,
                     domain!="Eukaryota")
 
 ## 2. Removing samples with low number of reads
+sampleSums(wrp) # prints sample sums
 # Adding the sample sums of the reads to meta data column
 wrp@sam_data$sample_sums_unfiltered = as.numeric(sample_sums(wrp))
-# We see a relatively continuous increase in sample, so will use 800 as the cutoff.
+# We see a relatively continuous increase in read numbers per sample, so will use 800 as the cutoff.
 # Removing all samples with less than 800 reads
 wrp.high <- prune_samples(sample_sums(wrp) >= 800, wrp)
 # Making a new object with only the samples  lost (less than 800 reads)
 wrp.below800 <- prune_samples(sample_sums(wrp) < 800, wrp)
-## Getting the metadata out of phyloseq for low reads obj
+# Getting the metadata out of phyloseq for low reads object
 wrp.below800 = as.matrix(wrp.below800@sam_data)
-## write file to know which samples were lost 
+# Writing file to know which samples were lost 
 write.csv(wrp.below800, "data/processed/wrp_samples_less_than_800.csv")
 
 ## 3. Removing ASVs that are low frequency
-# extracting otu dataframe (asv table) from phyloseq object
+# Extracting otu dataframe (asv table) from phyloseq object
 otutab <- as.data.frame(t(as.matrix(otu_table(wrp.high@otu_table))))
 # Calculating the sum of each row in the otutab
 otutab$asv_abundance = rowSums(otutab)
 # Finding the minimum value of asv_abundance 
 min(otutab$asv_abundance)
-# Remvoing ASVs with low Frequency using 100 as threshold
+# Removing ASVs with low frequency using 100 as threshold
 otu.pruned = subset(otutab, otutab$asv_abundance>=100)
-### Confirming the new minimum ASV abundance value is at the threshold
+# Confirming the new minimum ASV abundance value is at the threshold
 min(otu.pruned$asv_abundance)
 # Removing ASV_abundance column
 widthotu = ncol(otu.pruned) # finding width
-# keep everything in the otu.pruned dataset except the last columns
-otu.pruned = otu.pruned[,-c(widthotu)]
+otu.pruned = otu.pruned[,-c(widthotu)] # keep everything except the last columns
 
 ## 4. Removing infrequent ASVs over samples
-# Creating a function that counts the number of occurrence along rows where the number in the cell (ASV occurence) 
+# Creating a function that counts the number of occurrence along rows 
 ASVoccur = function(x){return(sum(x>0))}
 # Calculating the occurrence of each ASV in the dataframe
 otu.pruned$asv_occur_count = apply(otu.pruned, 1, ASVoccur)
@@ -79,7 +80,8 @@ otu.highfreq = otu.highfreq[,-c(widthotu)]
 ## 5. Data de-noising
 otu.clean <- mutate_all(otu.highfreq, funs(ifelse(. < 3, 0, .)))
 
-## Making a new phyloseq object of cleaned data
+### Making a new phyloseq object of cleaned data ###
+
 cleanwrp = phyloseq(sample_data(wrp.high@sam_data),
                     tax_table(wrp.high@tax_table),
                     otu_table(as.matrix(otu.clean), taxa_are_rows = TRUE))
@@ -109,41 +111,39 @@ dephyloseq = function(phylo_obj){
   output = mot
 }
 
-# choosing to use Rarefied data going forward
-# leaving this here as a method to quickly decide to instead use rarefied if that is preferable
-#working.wrp = rare.wrp 
-working.wrp = cleanwrp
+## We are not rarefying our data at this stage, since we will work with proportions later.
 
-## summarize at rank 6 (or change this to be the rank you have in your dataset)
-working.wrp = tax_glom(working.wrp, taxrank = "genus")
+##### Why are we doing this?
+## summarize at rank 6 / genus
+#working.wrp = tax_glom(working.wrp, taxrank = "genus")
 ## calculate the number of reads in each sample. This is important for relative abundance calculations later
-working.wrp@sam_data$read_depth = sample_sums(working.wrp)
+#working.wrp@sam_data$read_depth = sample_sums(working.wrp)
 
-## get working.wrp data out of phyloseq and into a dataframe
-wrp.processed.df = dephyloseq(working.wrp)
+## Getting cleanwrp data out of phyloseq and into a dataframe
+wrp.processed.df = dephyloseq(cleanwrp)
 
-# Finding lowest taxanomic data ####
+##### Do we need to do this for the 2019 dataset? It seems like taxonomic ranks are already propagated through
+## Finding lowest taxonomic rank included in the dataset and putting it in a new column
+# We'll use this column later to merge the distribution dataset (Weigel 2019) with the traits dataset (Weigel 2022)
 # Creating function to remove blank strings and replace with NAs
-replace_empty_with_na <- function(x) {
-  x[x == ""] <- NA
-  return(x)
-}
+#replace_empty_with_na <- function(x) {
+#  x[x == ""] <- NA
+#  return(x)
+#}
+# Applying the above function to our dataset (will apply to empty taxonomic rank columns)
+# wrp.processed.df <- wrp.processed.df %>%
+#  mutate(across(everything(), replace_empty_with_na))
+# Creating final dataset with lowest rank column 
+# community_data <- wrp.processed.df %>%
+# rowwise() %>%
+#  mutate(lowest_rank = if_else(!is.na(genus), genus,
+#                               if_else(!is.na(family), family,
+#                                       if_else(!is.na(order), order,
+#                                               if_else(!is.na(class), class,
+#                                                      if_else(!is.na(phylum), phylum, NA_character_))))))
 
-# Applying the above function to our dataset
-wrp.processed.df <- wrp.processed.df %>%
-  mutate(across(everything(), replace_empty_with_na))
-
-# Creating Final Dataset ####
-community_data <- wrp.processed.df %>%
-  rowwise() %>%
-  mutate(lowest_rank = if_else(!is.na(genus), genus,
-                               if_else(!is.na(family), family,
-                                       if_else(!is.na(order), order,
-                                               if_else(!is.na(class), class,
-                                                       if_else(!is.na(phylum), phylum, NA_character_))))))
-
-# Writing to a file ####
-write.csv(community_data, "data/processed/community_dataframe.csv")
+## Writing to a file
+write.csv(wrp.processed.df, "data/processed/community_dataframe.csv")
 
 
 ### Setting up the functional trait dataset ###
@@ -151,29 +151,12 @@ write.csv(community_data, "data/processed/community_dataframe.csv")
 ## Importing Data
 traits <- read.csv("data/raw/msystems.01422-21-s0005.csv")
 
-## Condensing categories of traits into single columns
+## Condensing all nitrogen cycling-related traits into one column
 traits <- traits %>%
-  mutate_at(vars(starts_with("Dissimilatory_nitrate_reduction_")), ~coalesce(., "NA")) %>%
-  mutate(dissimilatory_nitrate_reduction = if_else(rowSums(select(., starts_with("Dissimilatory_nitrate_reduction_")) == "Y", na.rm = TRUE) > 0, "Y", ""))
-traits <- traits %>%
-  mutate_at(vars(starts_with("Assimilatory_nitrate_reduction_")), ~coalesce(., "NA")) %>%
-  mutate(assimilatory_nitrate_reduction = if_else(rowSums(select(., starts_with("Assimilatory_nitrate_reduction_")) == "Y", na.rm = TRUE) > 0, "Y", ""))
-traits <- traits %>%
-  mutate_at(vars(starts_with("Denitrification")), ~coalesce(., "NA")) %>%
-  mutate(denitrification = if_else(rowSums(select(., starts_with("Denitrification")) == "Y", na.rm = TRUE) > 0, "Y", ""))
-traits <- traits %>%
-  mutate_at(vars(starts_with("Nitrogen_fixation")), ~coalesce(., "NA")) %>%
-  mutate(nitrogen_fixation = if_else(rowSums(select(., starts_with("Nitrogen_fixation")) == "Y", na.rm = TRUE) > 0, "Y", ""))
-traits <- traits %>%
-  mutate_at(vars(starts_with("Nitrification")), ~coalesce(., "NA")) %>%
-  mutate(nitrification = if_else(rowSums(select(., starts_with("Nitrification")) == "Y", na.rm = TRUE) > 0, "Y", ""))
+  mutate_at(vars(starts_with(c("Dissimilatory_nitrate_reduction","Assimilatory_nitrate_reduction","Denitrification","Nitrogen_fixation","Nitrification","Annamox"))),~coalesce(.,"NA")) %>%
+  mutate(nitrogen_cycling = if_else(rowSums(select(., starts_with(c("Dissimilatory_nitrate_reduction","Assimilatory_nitrate_reduction","Denitrification","Nitrogen_fixation","Nitrification","Annamox")))=="Y",na.rm=TRUE)>0,"Y",""))
 
-## Condensing categories into one single nitrogen-related column
-traits <- traits %>%
-  mutate_at(vars(c("dissimilatory_nitrate_reduction","assimilatory_nitrate_reduction","denitrification","nitrogen_fixation","nitrification")), ~coalesce(., "NA")) %>%
-  mutate(nitrogen_cycling = if_else(rowSums(select(., c("dissimilatory_nitrate_reduction","assimilatory_nitrate_reduction","denitrification","nitrogen_fixation","nitrification")) == "Y", na.rm = TRUE) > 0, "Y", ""))
-
-## Creating a new condensed dataframe, with only one variable for nitrogen cycling ####
+## Creating a new dataframe with only relevant variables
 condensed_traits <- traits[1:66,c("MAG_name", "phylum","class","order","family","genus","nitrogen_cycling")]
 
 ## Finding lowest taxanomic data ####
