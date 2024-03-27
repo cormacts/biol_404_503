@@ -120,7 +120,7 @@ dephyloseq = function(phylo_obj){
 #working.wrp@sam_data$read_depth = sample_sums(working.wrp)
 
 ## Getting cleanwrp data out of phyloseq and into a dataframe
-wrp.processed.df = dephyloseq(cleanwrp)
+community_data = dephyloseq(cleanwrp)
 
 ##### Do we need to do this for the 2019 dataset? It seems like taxonomic ranks are already propagated through
 ## Finding lowest taxonomic rank included in the dataset and putting it in a new column
@@ -143,7 +143,7 @@ wrp.processed.df = dephyloseq(cleanwrp)
 #                                                      if_else(!is.na(phylum), phylum, NA_character_))))))
 
 ## Writing to a file
-write.csv(wrp.processed.df, "data/processed/community_dataframe.csv")
+write.csv(community_data, "data/processed/community_dataframe.csv")
 
 
 ### Setting up the functional trait dataset ###
@@ -159,22 +159,16 @@ traits <- traits %>%
 ## Creating a new dataframe with only relevant variables
 condensed_traits <- traits[1:66,c("MAG_name", "phylum","class","order","family","genus","nitrogen_cycling")]
 
-## Finding lowest taxanomic data ####
+## Finding lowest taxonomic data to apply to other dataset
 # Creating function to remove blank strings and replace with NAs
 replace_empty_with_na <- function(x) {
   x[x == ""] <- NA
   return(x)
 }
-
-replace_na_with_n <- function(x) {
-  x[is.na(x)] <- "N"
-  return(x)
-}
-
-# Applying the above function to our dataset
+# Applying the above function to our dataset 
 condensed_traits <- condensed_traits %>%
   mutate(across(everything(), replace_empty_with_na))
-
+# Creating a new column with the lowest taxonomic rank available
 trait_data <- condensed_traits %>%
   rowwise() %>%
   mutate(lowest_rank = if_else(!is.na(genus), genus,
@@ -182,14 +176,18 @@ trait_data <- condensed_traits %>%
                                        if_else(!is.na(order), order,
                                                if_else(!is.na(class), class,
                                                        if_else(!is.na(phylum), phylum, NA_character_))))))
-
+# The previous function will have placed NAs in the nitrogen_cycling column where there were empty spaces.
+# Creating a function to replace those NAs with "N" (= no nitrogen cycling traits)
+replace_na_with_n <- function(x) {
+  x[is.na(x)] <- "N"
+  return(x)
+}
+# Applying function to our dataset
 trait_data <- trait_data %>%
   mutate(nitrogen_cycling = replace_na_with_n(nitrogen_cycling))
 
-# Dealing with repeat cases of lowest_rank
-# going to merge these observations into a single value for each lowest_rank
-# MAJOR DEBATE HERE: Choosing to make merged rows, such that if the rows ever say Y to N cycling, they always do
-
+# To deal with repeat cases of lowest_rank, we are choosing to merge all observations of a given taxon into a single row.
+# This will put a "Y" for nitrogen_cycling if any of the observations in that group had a "Y".
 trait_data <- trait_data %>% arrange(desc(nitrogen_cycling))
 trait_data <- trait_data %>% 
   group_by(lowest_rank) %>% 
@@ -199,36 +197,28 @@ trait_data <- trait_data %>%
 
 ### Merging the two datasets ###
 
-# trait_data is the dataframe with known taxa and traits
-# community_data is the dataframe is the collection of data relating to commmunity composition and shifts based on treatment.
+# community_data contains data relating to community composition and shifts based on treatment (Weigel et al., 2019)
+# trait_data contains microbial taxa and their functional traits (Weigel et al., 2022)
 
-# We will want to join these two dataframes using some version of the join() function
-# inner_join() keeps only observations that exist in both - might lose a lot of data
-# left_join() keeps observations in the left (first) dataframe
-# full_join() keeps all observations in both
+## We will join these two dataframes using left_join(), to keep all observations in the left (first) dataframe.
+all_merged <- left_join(community_data, trait_data, by = join_by("genus"=="lowest_rank"))
+# Renaming the genus column to reflect that the lowest available taxonomic rank is now stored there
+names(all_merged)[names(all_merged) == "genus"] <- "lowest_rank"
 
-all_merged <- left_join(community_data, trait_data, by = "lowest_rank")
+## Creating two sets of filtered data, one for each set of conditions we are planning to compare (meristem versus tip / Macrocystis vs. Nereocystis host)
+# Either question can only be asked using data from specific sites - need to filter for these locations.
 
-# Creating two sets of data one for meristem v tip and one for host type
-# In either case filtering will need to happen
-## Filtering for relevant samples
-# In species_data - only want macro and nereo (maybe control)
-# In blade_data - only want nereo base and nereo tip (whats the differnec between "tip" and "tip_swab")
-## Filtering for relevant sites 
-# Either question can only be asked using data from specific sites - need to filter for these locations
-
+# In species_data - only want Macrocystis and Nereocystis, and locations with both species present
 both_species_locations <- c("Bullman", "Cape_Johnson", "Destruction_Island", 
                             "Koitlah", "Sekiu")
-base_and_tip <- c("Nereocystis_tip", "Nereocystis_base", "Nereocystis_tip_swab",
-                  "Nereocystis_base_swab")
-
-# The below makes species_data, with only samples from the above listed locations, where both kelp species were sampled
 species_data <- all_merged %>%
   select(Row.names, description, host_common_name, location, sample_type_user, asv_abundance, lowest_rank, nitrogen_cycling) %>%
   filter(description == "Macrocystis" | description == "Nereocystis") %>%
   filter(location %in% both_species_locations)
 
-# The below makes blade_data, with only samples from Tatoosh and from the blade meristem and tip, also makes a new simplified 
+# In blade_data - only want Nereocystis base and Nereocystis tip (whats the difference between "tip" and "tip_swab")
+base_and_tip <- c("Nereocystis_tip", "Nereocystis_base", "Nereocystis_tip_swab",
+                  "Nereocystis_base_swab")
 blade_data <- all_merged %>%
   select(
     Row.names,
@@ -265,58 +255,200 @@ blade_data <- blade_data %>%
                                      "Y" = "Yes"),
     nitrogen_cycling = fct_explicit_na(nitrogen_cycling, "Unknown"))
 
-# Grouping by sample (assuming that it is being stored in Row.names) - so multiple samples per species of kelp
-new_sum_sp_data <- species_data %>%
+
+### Calculating proportions of microbes present with nitrogen cycling-related traits ###
+
+## Grouping by sample (based on the IDs stored in Row.names)
+sum_sp_data <- species_data %>%
   group_by(Row.names, nitrogen_cycling,description) %>%
   summarise_at(vars(asv_abundance),
                list(sum_abundance = sum))
-
-# Pivoting so that the Y/N/Unknown abundances are columns with one row per sample
-pivoted_sum_sp_data <- new_sum_sp_data %>%
-  pivot_wider(names_from = nitrogen_cycling,values_from = sum_abundance)
-
-### Adding columns calculating: 
-# 1. Total abundance of all ASVs that are taxa covered by Weigel 2022 (functional traits paper)
-pivoted_sum_sp_data$total_abundance_Weigel2022 = pivoted_sum_sp_data$Yes+pivoted_sum_sp_data$No
-# 2. Total abundance of all ASVs covered by Weigel 2019 (original paper)
-pivoted_sum_sp_data$total_abundance_Weigel2019 = pivoted_sum_sp_data$Yes+pivoted_sum_sp_data$No+pivoted_sum_sp_data$Unknown
-# 3. Proportions for Y, N, and Unknown nitrogen cycling traits, out of either the 2022 or 2019 total
-pivoted_sum_sp_data$proportion_Y_22 = pivoted_sum_sp_data$Yes/pivoted_sum_sp_data$total_abundance_Weigel2022
-pivoted_sum_sp_data$proportion_N_22 = pivoted_sum_sp_data$No/pivoted_sum_sp_data$total_abundance_Weigel2022
-pivoted_sum_sp_data$proportion_Y_19 = pivoted_sum_sp_data$Yes/pivoted_sum_sp_data$total_abundance_Weigel2019
-pivoted_sum_sp_data$proportion_N_19 = pivoted_sum_sp_data$No/pivoted_sum_sp_data$total_abundance_Weigel2019
-pivoted_sum_sp_data$proportion_NA_19 = pivoted_sum_sp_data$Unknown/pivoted_sum_sp_data$total_abundance_Weigel2019
-
-## Filtering the data to focus specifically on nitrogen cycling species
-## So we can compare directly the abundance of nitrogen cycling microbes
-new_sum_sp_data%>%
-  filter(nitrogen_cycling == "Yes") -> ndata
-
-## Doing the same as above for blade data
-new_sum_blade_data <- blade_data %>%
+sum_blade_data <- blade_data %>%
   group_by(Row.names, nitrogen_cycling,sample_type) %>%
   summarise_at(vars(asv_abundance),
                list(sum_abundance = sum))
 
-# Pivoting so that the Y/N/Unknown abundances are columns with one row per sample
-pivoted_sum_blade_data <- new_sum_blade_data %>%
+## Pivoting so that the Y/N/Unknown abundances are columns with one row per sample
+pivoted_sum_sp_data <- sum_sp_data %>%
+  pivot_wider(names_from = nitrogen_cycling,values_from = sum_abundance)
+pivoted_sum_blade_data <- sum_blade_data %>%
   pivot_wider(names_from = nitrogen_cycling,values_from = sum_abundance)
 
-# Adding columns calculating 
+## Adding columns calculating: 
 # 1. Total abundance of all ASVs that are taxa covered by Weigel 2022 (functional traits paper)
+pivoted_sum_sp_data$total_abundance_Weigel2022 = pivoted_sum_sp_data$Yes+pivoted_sum_sp_data$No
 pivoted_sum_blade_data$total_abundance_Weigel2022 = pivoted_sum_blade_data$Yes+pivoted_sum_blade_data$No
 # 2. Total abundance of all ASVs covered by Weigel 2019 (original paper)
+pivoted_sum_sp_data$total_abundance_Weigel2019 = pivoted_sum_sp_data$Yes+pivoted_sum_sp_data$No+pivoted_sum_sp_data$Unknown
 pivoted_sum_blade_data$total_abundance_Weigel2019 = pivoted_sum_blade_data$Yes+pivoted_sum_blade_data$No+pivoted_sum_blade_data$Unknown
 # 3. Proportions for Y, N, and Unknown nitrogen cycling traits, out of either the 2022 or 2019 total
+pivoted_sum_sp_data$proportion_Y_22 = pivoted_sum_sp_data$Yes/pivoted_sum_sp_data$total_abundance_Weigel2022
 pivoted_sum_blade_data$proportion_Y_22 = pivoted_sum_blade_data$Yes/pivoted_sum_blade_data$total_abundance_Weigel2022
+pivoted_sum_sp_data$proportion_N_22 = pivoted_sum_sp_data$No/pivoted_sum_sp_data$total_abundance_Weigel2022
 pivoted_sum_blade_data$proportion_N_22 = pivoted_sum_blade_data$No/pivoted_sum_blade_data$total_abundance_Weigel2022
+pivoted_sum_sp_data$proportion_Y_19 = pivoted_sum_sp_data$Yes/pivoted_sum_sp_data$total_abundance_Weigel2019
 pivoted_sum_blade_data$proportion_Y_19 = pivoted_sum_blade_data$Yes/pivoted_sum_blade_data$total_abundance_Weigel2019
+pivoted_sum_sp_data$proportion_N_19 = pivoted_sum_sp_data$No/pivoted_sum_sp_data$total_abundance_Weigel2019
 pivoted_sum_blade_data$proportion_N_19 = pivoted_sum_blade_data$No/pivoted_sum_blade_data$total_abundance_Weigel2019
+pivoted_sum_sp_data$proportion_NA_19 = pivoted_sum_sp_data$Unknown/pivoted_sum_sp_data$total_abundance_Weigel2019
 pivoted_sum_blade_data$proportion_NA_19 = pivoted_sum_blade_data$Unknown/pivoted_sum_blade_data$total_abundance_Weigel2019
 
-## Filtering data to focus on nitrogen cycling microbes for kelp sites
-## So we can compare directly the abundance of nitrogen cycling microbes
-new_sum_blade_data%>%
+### Visualizing results ###
+
+## Making taxaplot-like bar charts to show proportions
+
+## Making dataframes in a format easy to plot
+# Species comparison
+pivoted_sum_sp_data$sample_ID = paste(pivoted_sum_sp_data$description,pivoted_sum_sp_data$Row.names)
+plot_sp_proportions <- pivoted_sum_sp_data[,c("sample_ID","proportion_Y_22","proportion_N_22")]
+plot_sp_proportions <- plot_sp_proportions %>%
+  pivot_longer(!sample_ID, names_to = "nitrogen_cycling",values_to = "proportions_22")
+plot_sp_proportions <- plot_sp_proportions %>% 
+  separate(sample_ID,c("species", "sample"), sep = " ", remove = TRUE)
+# Blade location comparison
+pivoted_sum_blade_data$sample_ID = paste(pivoted_sum_blade_data$sample_type,pivoted_sum_blade_data$Row.names)
+plot_blade_proportions <- pivoted_sum_blade_data[,c("sample_ID","proportion_Y_22","proportion_N_22")]
+plot_blade_proportions <- plot_blade_proportions %>%
+  pivot_longer(!sample_ID, names_to = "nitrogen_cycling",values_to = "proportions_22")
+plot_blade_proportions <- plot_blade_proportions %>% 
+  separate(sample_ID,c("blade_location", "sample"), sep = " ", remove = TRUE)
+
+## Plotting code from Annie + taxaplots code from Lab 5:
+# Species comparison:
+ggplot(plot_sp_proportions, aes(x=sample, y=proportions_22,
+                                fill=nitrogen_cycling))+
+  geom_bar(stat = "identity")+
+  scale_fill_manual(values = c("lightblue", "yellow1"))+
+  guides(fill=guide_legend(ncol=2))+
+  facet_grid(.~species, scales="free", space="free")+
+  theme_bw()+
+  theme(panel.grid = element_blank(),
+        strip.background = element_rect(fill="white"),
+        axis.text.y = element_text(size = 10, colour = "black"),
+        axis.title = element_text(size=10, face="bold"),
+        strip.text = element_text(color="black", size=10),
+        legend.text=element_text(size=6),
+        axis.line = element_line(colour = "black"),
+        axis.text.x = element_blank())+
+  labs(y="Relative abundance", x="Sample", fill="Nitrogen cycling")
+# Blade location comparison:
+ggplot(plot_blade_proportions, aes(x=sample, y=proportions_22,
+                                   fill=nitrogen_cycling))+
+  geom_bar(stat = "identity")+
+  scale_fill_manual(values = c("lightblue", "yellow1"))+
+  guides(fill=guide_legend(ncol=2))+
+  facet_grid(.~blade_location, scales="free", space="free")+
+  theme_bw()+
+  theme(panel.grid = element_blank(),
+        strip.background = element_rect(fill="white"),
+        axis.text.y = element_text(size = 10, colour = "black"),
+        axis.title = element_text(size=10, face="bold"),
+        strip.text = element_text(color="black", size=10),
+        legend.text=element_text(size=6),
+        axis.line = element_line(colour = "black"),
+        axis.text.x = element_blank())+
+  labs(y="Relative abundance", x="Sample", fill="Nitrogen cycling")
+
+## Repeating above procedure, but including all taxa covered by Weigel 2019
+
+## Making dataframe to use for plotting
+# Species comparison:
+plot_sp_proportions_2 <- pivoted_sum_sp_data[,c("sample_ID","proportion_Y_19","proportion_N_19","proportion_NA_19")]
+plot_sp_proportions_2 <- plot_sp_proportions_2 %>%
+  pivot_longer(!sample_ID, names_to = "nitrogen_cycling",values_to = "proportions_19")
+plot_sp_proportions_2 <- plot_sp_proportions_2 %>% 
+  separate(sample_ID,c("species", "sample"), sep = " ", remove = TRUE)
+# Blade location comparison:
+plot_blade_proportions_2 <- pivoted_sum_blade_data[,c("sample_ID","proportion_Y_19","proportion_N_19","proportion_NA_19")]
+plot_blade_proportions_2 <- plot_blade_proportions_2 %>%
+  pivot_longer(!sample_ID, names_to = "nitrogen_cycling",values_to = "proportions_19")
+plot_blade_proportions_2 <- plot_blade_proportions_2 %>% 
+  separate(sample_ID,c("blade_location", "sample"), sep = " ", remove = TRUE)
+
+## Plotting code from Annie + taxaplots code from Lab 5:
+# Species comparison:
+ggplot(plot_sp_proportions_2, aes(x=sample, y=proportions_19,
+                                  fill=nitrogen_cycling))+
+  geom_bar(stat = "identity")+
+  scale_fill_manual(values = c("lightblue","violet","yellow1"))+
+  guides(fill=guide_legend(ncol=2))+
+  facet_grid(.~species, scales="free", space="free")+
+  theme_bw()+
+  theme(panel.grid = element_blank(),
+        strip.background = element_rect(fill="white"),
+        axis.text.y = element_text(size = 10, colour = "black"),
+        axis.title = element_text(size=10, face="bold"),
+        strip.text = element_text(color="black", size=10),
+        legend.text=element_text(size=6),
+        axis.line = element_line(colour = "black"),
+        axis.text.x = element_blank())+
+  labs(y="Relative abundance", x="Sample", fill="Nitrogen cycling")
+# Blade location comparison:
+ggplot(plot_blade_proportions_2, aes(x=sample, y=proportions_19,
+                                     fill=nitrogen_cycling))+
+  geom_bar(stat = "identity")+
+  scale_fill_manual(values = c("lightblue","violet","yellow1"))+
+  guides(fill=guide_legend(ncol=2))+
+  facet_grid(.~blade_location, scales="free", space="free")+
+  theme_bw()+
+  theme(panel.grid = element_blank(),
+        strip.background = element_rect(fill="white"),
+        axis.text.y = element_text(size = 10, colour = "black"),
+        axis.title = element_text(size=10, face="bold"),
+        strip.text = element_text(color="black", size=10),
+        legend.text=element_text(size=6),
+        axis.line = element_line(colour = "black"),
+        axis.text.x = element_blank())+
+  labs(y="Relative abundance", x="Sample", fill="Nitrogen cycling")
+
+## Making boxplot to compare proportions
+
+## Box plot comparing proportions of nitrogen cycling microbes between Macrocystis and Nereocystis
+## Filterng for nitrogen cycling microbes
+plot_sp_proportions %>%
+  filter(nitrogen_cycling == "proportion_Y_22") -> sp_plot_data
+
+## Code to plot graph
+sp_plot_data %>%
+  ggplot( aes(x=species, y=proportions_22, fill=species)) +
+  geom_boxplot() +
+  labs(x = "Kelp Species", y = "Proportion of Microbe Species") +
+  scale_fill_viridis(discrete = TRUE, alpha=0.6) +
+  geom_jitter(color="black", size=0.4, alpha=0.9) +
+  theme_ipsum() +
+  theme(
+    legend.position="none",
+    plot.title = element_text(size=12)
+  ) +
+  ggtitle("Boxplot of Nitrogen Cycling Proportions") +
+  xlab("")
+
+## Box plot comparing proportions of nitrogen cycling microbes between kelp meristem and blade tip samples
+## Filtering for nitrogen cycling microbes
+plot_blade_proportions %>%
+  filter(nitrogen_cycling == "proportion_Y_22") -> b_plot_data
+
+## Code to plot the graph
+b_plot_data %>%
+  ggplot( aes(x=blade_location, y=proportions_22, fill=blade_location)) +
+  geom_boxplot() +
+  labs(x = "Sample Location", y = "Proportion of Microbe Species") +
+  scale_fill_viridis(discrete = TRUE, alpha=0.6) +
+  geom_jitter(color="black", size=0.4, alpha=0.9) +
+  theme_ipsum() +
+  theme(
+    legend.position="none",
+    plot.title = element_text(size=11)
+  ) +
+  ggtitle("Boxplot of Nitrogen Cycling Proportions") +
+  xlab("")
+
+### Statistical tests ###
+
+## Filtering the data to focus specifically on nitrogen cycling species
+sum_sp_data%>%
+  filter(nitrogen_cycling == "Yes") -> ndata
+sum_blade_data%>%
   filter(nitrogen_cycling == "Yes") -> bdata
 
 ## We want to do a two-sample comparison to look at possible differences in microbe functionality between kelp species
@@ -378,177 +510,4 @@ b_wctest <- wilcox.test(sum_abundance ~ sample_type, bdata)
 print(b_wctest)
 ## p-value < 0.05, therefore we can reject the null hypothesis and embrace the alternative hypothesis
 
-### Making dataframe to use for plotting
-pivoted_sum_sp_data$sample_ID = paste(pivoted_sum_sp_data$description,pivoted_sum_sp_data$Row.names)
-plot_sp_proportions <- pivoted_sum_sp_data[,c("sample_ID","proportion_Y_22","proportion_N_22")]
-plot_sp_proportions <- plot_sp_proportions %>%
-  pivot_longer(!sample_ID, names_to = "nitrogen_cycling",values_to = "proportions_22")
-plot_sp_proportions <- plot_sp_proportions %>% 
-  separate(sample_ID,c("species", "sample"), sep = " ", remove = TRUE)
-
-## Plotting code from Annie + taxaplots code from Lab 5:
-ggplot(plot_sp_proportions, aes(x=sample, y=proportions_22,
-                                fill=nitrogen_cycling))+
-  geom_bar(stat = "identity")+
-  scale_fill_manual(values = c("lightblue", "yellow1"))+
-  guides(fill=guide_legend(ncol=2))+
-  facet_grid(.~species, scales="free", space="free")+
-  theme_bw()+
-  theme(panel.grid = element_blank(),
-        strip.background = element_rect(fill="white"),
-        axis.text.y = element_text(size = 10, colour = "black"),
-        axis.title = element_text(size=10, face="bold"),
-        strip.text = element_text(color="black", size=10),
-        legend.text=element_text(size=6),
-        axis.line = element_line(colour = "black"),
-        axis.text.x = element_blank())+
-  labs(y="Relative abundance", x="Sample", fill="Nitrogen cycling")
-
-
-### Blade location / successional stage comparison
-
-# Grouping by sample (assuming that it is being stored in Row.names) - so multiple samples per blade location
-new_sum_blade_data <- blade_data %>%
-  group_by(Row.names, nitrogen_cycling,sample_type) %>%
-  summarise_at(vars(asv_abundance),
-               list(sum_abundance = sum))
-
-# Pivoting so that the Y/N/Unknown abundances are columns with one row per sample
-pivoted_sum_blade_data <- new_sum_blade_data %>%
-  pivot_wider(names_from = nitrogen_cycling,values_from = sum_abundance)
-
-# Adding columns calculating 
-# 1. Total abundance of all ASVs that are taxa covered by Weigel 2022 (functional traits paper)
-pivoted_sum_blade_data$total_abundance_Weigel2022 = pivoted_sum_blade_data$Yes+pivoted_sum_blade_data$No
-# 2. Total abundance of all ASVs covered by Weigel 2019 (original paper)
-pivoted_sum_blade_data$total_abundance_Weigel2019 = pivoted_sum_blade_data$Yes+pivoted_sum_blade_data$No+pivoted_sum_blade_data$Unknown
-# 3. Proportions for Y, N, and Unknown nitrogen cycling traits, out of either the 2022 or 2019 total
-pivoted_sum_blade_data$proportion_Y_22 = pivoted_sum_blade_data$Yes/pivoted_sum_blade_data$total_abundance_Weigel2022
-pivoted_sum_blade_data$proportion_N_22 = pivoted_sum_blade_data$No/pivoted_sum_blade_data$total_abundance_Weigel2022
-pivoted_sum_blade_data$proportion_Y_19 = pivoted_sum_blade_data$Yes/pivoted_sum_blade_data$total_abundance_Weigel2019
-pivoted_sum_blade_data$proportion_N_19 = pivoted_sum_blade_data$No/pivoted_sum_blade_data$total_abundance_Weigel2019
-pivoted_sum_blade_data$proportion_NA_19 = pivoted_sum_blade_data$Unknown/pivoted_sum_blade_data$total_abundance_Weigel2019
-
-## Making dataframe to use for plotting
-pivoted_sum_blade_data$sample_ID = paste(pivoted_sum_blade_data$sample_type,pivoted_sum_blade_data$Row.names)
-plot_blade_proportions <- pivoted_sum_blade_data[,c("sample_ID","proportion_Y_22","proportion_N_22")]
-plot_blade_proportions <- plot_blade_proportions %>%
-  pivot_longer(!sample_ID, names_to = "nitrogen_cycling",values_to = "proportions_22")
-plot_blade_proportions <- plot_blade_proportions %>% 
-  separate(sample_ID,c("blade_location", "sample"), sep = " ", remove = TRUE)
-
-## Plotting code from Annie + taxaplots code from Lab 5:
-ggplot(plot_blade_proportions, aes(x=sample, y=proportions_22,
-                                   fill=nitrogen_cycling))+
-  geom_bar(stat = "identity")+
-  scale_fill_manual(values = c("lightblue", "yellow1"))+
-  guides(fill=guide_legend(ncol=2))+
-  facet_grid(.~blade_location, scales="free", space="free")+
-  theme_bw()+
-  theme(panel.grid = element_blank(),
-        strip.background = element_rect(fill="white"),
-        axis.text.y = element_text(size = 10, colour = "black"),
-        axis.title = element_text(size=10, face="bold"),
-        strip.text = element_text(color="black", size=10),
-        legend.text=element_text(size=6),
-        axis.line = element_line(colour = "black"),
-        axis.text.x = element_blank())+
-  labs(y="Relative abundance", x="Sample", fill="Nitrogen cycling")
-
-##### Same procedure but with full Weigel 2019 dataset and taxa with unknown nitrogen-cycling traits
-
-### Species comparison
-
-## Making dataframe to use for plotting
-plot_sp_proportions_2 <- pivoted_sum_sp_data[,c("sample_ID","proportion_Y_19","proportion_N_19","proportion_NA_19")]
-plot_sp_proportions_2 <- plot_sp_proportions_2 %>%
-  pivot_longer(!sample_ID, names_to = "nitrogen_cycling",values_to = "proportions_19")
-plot_sp_proportions_2 <- plot_sp_proportions_2 %>% 
-  separate(sample_ID,c("species", "sample"), sep = " ", remove = TRUE)
-
-## Plotting code from Annie + taxaplots code from Lab 5:
-ggplot(plot_sp_proportions_2, aes(x=sample, y=proportions_19,
-                                  fill=nitrogen_cycling))+
-  geom_bar(stat = "identity")+
-  scale_fill_manual(values = c("lightblue","violet","yellow1"))+
-  guides(fill=guide_legend(ncol=2))+
-  facet_grid(.~species, scales="free", space="free")+
-  theme_bw()+
-  theme(panel.grid = element_blank(),
-        strip.background = element_rect(fill="white"),
-        axis.text.y = element_text(size = 10, colour = "black"),
-        axis.title = element_text(size=10, face="bold"),
-        strip.text = element_text(color="black", size=10),
-        legend.text=element_text(size=6),
-        axis.line = element_line(colour = "black"),
-        axis.text.x = element_blank())+
-  labs(y="Relative abundance", x="Sample", fill="Nitrogen cycling")
-
-#### Blade location comparison
-
-## Making dataframe to use for plotting
-plot_blade_proportions_2 <- pivoted_sum_blade_data[,c("sample_ID","proportion_Y_19","proportion_N_19","proportion_NA_19")]
-plot_blade_proportions_2 <- plot_blade_proportions_2 %>%
-  pivot_longer(!sample_ID, names_to = "nitrogen_cycling",values_to = "proportions_19")
-plot_blade_proportions_2 <- plot_blade_proportions_2 %>% 
-  separate(sample_ID,c("blade_location", "sample"), sep = " ", remove = TRUE)
-
-## Plotting code from Annie + taxaplots code from Lab 5:
-ggplot(plot_blade_proportions_2, aes(x=sample, y=proportions_19,
-                                     fill=nitrogen_cycling))+
-  geom_bar(stat = "identity")+
-  scale_fill_manual(values = c("lightblue","violet","yellow1"))+
-  guides(fill=guide_legend(ncol=2))+
-  facet_grid(.~blade_location, scales="free", space="free")+
-  theme_bw()+
-  theme(panel.grid = element_blank(),
-        strip.background = element_rect(fill="white"),
-        axis.text.y = element_text(size = 10, colour = "black"),
-        axis.title = element_text(size=10, face="bold"),
-        strip.text = element_text(color="black", size=10),
-        legend.text=element_text(size=6),
-        axis.line = element_line(colour = "black"),
-        axis.text.x = element_blank())+
-  labs(y="Relative abundance", x="Sample", fill="Nitrogen cycling")
-
-## Box plot comparing proportions of nitrogen cycling microbes between Macrocystis and Nereocystis
-## Filterng for nitrogen cycling microbes
-plot_sp_proportions %>%
-  filter(nitrogen_cycling == "proportion_Y_22") -> sp_plot_data
-
-## Code to plot graph
-sp_plot_data %>%
-  ggplot( aes(x=species, y=proportions_22, fill=species)) +
-  geom_boxplot() +
-  labs(x = "Kelp Species", y = "Proportion of Microbe Species") +
-  scale_fill_viridis(discrete = TRUE, alpha=0.6) +
-  geom_jitter(color="black", size=0.4, alpha=0.9) +
-  theme_ipsum() +
-  theme(
-    legend.position="none",
-    plot.title = element_text(size=12)
-  ) +
-  ggtitle("Boxplot of Nitrogen Cycling Proportions") +
-  xlab("")
-
-
-## Box plot comparing proportions of nitrogen cycling microbes between kelp meristem and blade tip samples
-## Filtering for nitrogen cycling microbes
-plot_blade_proportions %>%
-  filter(nitrogen_cycling == "proportion_Y_22") -> b_plot_data
-
-## Code to plot the graph
-b_plot_data %>%
-  ggplot( aes(x=blade_location, y=proportions_22, fill=blade_location)) +
-  geom_boxplot() +
-  labs(x = "Sample Location", y = "Proportion of Microbe Species") +
-  scale_fill_viridis(discrete = TRUE, alpha=0.6) +
-  geom_jitter(color="black", size=0.4, alpha=0.9) +
-  theme_ipsum() +
-  theme(
-    legend.position="none",
-    plot.title = element_text(size=11)
-  ) +
-  ggtitle("Boxplot of Nitrogen Cycling Proportions") +
-  xlab("")
 
