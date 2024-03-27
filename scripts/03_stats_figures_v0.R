@@ -164,22 +164,23 @@ blade_stat_data %>%
 ## For between kelp species:
 sp_lt <- leveneTest(proportions_22 ~ species, sp_stat_data)
 print(sp_lt)
-## p-value < 0.05, therefore we can reject the null hypothesis: 
-## Can use a two-sample t-test
+## p-value < 0.05, therefore we can reject the null hypothesis: There is not equal variance
+## Cannot use a two-sample t-test
+## Will perform a Mann-Whitney U test
 
 ## For between meristem and blade tip:
 b_lt <- leveneTest(proportions_22 ~ blade_location, blade_stat_data)
 print(b_lt)
 ## p-value is greater than 0.05, therefore we cannot reject the null hypothesis:
-## Cannot use a two-sample t-test
-## Will perform a Mann-Whitney U test
+## Can use a two-sample t-test
+
 
 ## --------------------------------------------------
 
 ## Between species (sp)test: mean proportion of nitrogen-fixing microbe species
-## Using a two-sample t-test as the data passed all the assumption requirements
-sp_ttest <- t.test(proportions_22 ~ species, sp_stat_data)
-print(sp_ttest)
+## Using a Mann-Whitney U test as our data does not meet the assumptions of the t-test
+sp_wctest <- wilcox.test(proportions_22 ~ species, sp_stat_data)
+print(sp_wctest)
 ## p-value > 0.05, therefore we cannot reject the null hypothesis
 
 ## Between kelp location (meristem and blade tip) test: mean proportion of nitrogen-fixing microbe species
@@ -250,19 +251,24 @@ ggsave(file = "figures/blade_stackplot.PDF", plot = blade_stackplot, dpi = 500, 
 ## Using the stat dataframe made from above
 
 ## Code to plot graph
-sp_stat_data %>%
-  ggplot( aes(x=species, y=proportions_22, fill=species)) +
-  geom_boxplot() +
-  labs(x = "Kelp Species", y = "Proportion of Microbe Species") +
-  scale_fill_viridis(discrete = TRUE, alpha=0.6) +
-  geom_jitter(color="black", size=0.4, alpha=0.9) +
-  theme_ipsum() +
-  theme(
-    legend.position="none",
-    plot.title = element_text(size=12)
-  ) +
-  ggtitle("Boxplot of Nitrogen Cycling Proportions") +
-  xlab("")
+sp_boxplot <-   ggplot(sp_stat_data, aes(x=species, y=proportions_22, fill=species)) +
+                  geom_boxplot() +
+                  scale_fill_viridis(discrete = TRUE, alpha=0.6) +
+                  geom_jitter(color="black", size=0.4, alpha=0.9) +
+                  theme_ipsum() +
+                  theme(
+                    legend.position="none",
+                    plot.title = element_text(hjust = 0.5, size=11),
+                    axis.title.x = element_text(hjust = 0.5, vjust = 0.2, size = 12),
+                    axis.title.y = element_text(hjust = 0.5, size = 12)
+                  ) +
+                  ggtitle("Boxplot of Nitrogen Cycling Proportions") +
+                  labs( x = "Kelp Species", y = "Proportion of Microbe Species")
+
+
+png(file = "figures/sp_boxplot.png")
+sp_boxplot
+dev.off()
 
 ## Observations:
 ## There does not seem to be a large difference in mean proportions of nitrogen cycling 
@@ -271,23 +277,28 @@ sp_stat_data %>%
 
 
 ## Box plot comparing proportions of nitrogen cycling microbes between kelp meristem and blade tip samples
-## Using the stat dataframe made from above
+## Using the stat data frame made from above
 
 
 ## Code to plot the graph
-blade_stat_data %>%
-  ggplot( aes(x=blade_location, y=proportions_22, fill=blade_location)) +
-  geom_boxplot() +
-  labs(x = "Sample Location", y = "Proportion of Microbe Species") +
-  scale_fill_viridis(discrete = TRUE, alpha=0.6) +
-  geom_jitter(color="black", size=0.4, alpha=0.9) +
-  theme_ipsum() +
-  theme(
-    legend.position="none",
-    plot.title = element_text(size=11)
-  ) +
-  ggtitle("Boxplot of Nitrogen Cycling Proportions") +
-  xlab("")
+blade_boxplot <-   ggplot(blade_stat_data, aes(x=blade_location, y=proportions_22, fill=blade_location)) +
+                      geom_boxplot() +
+                      labs(x = "Sample Location", y = "Proportion of Microbe Species") +
+                      scale_fill_viridis(discrete = TRUE, alpha=0.6) +
+                      geom_jitter(color="black", size=0.4, alpha=0.9) +
+                      theme_ipsum() +
+                      theme(
+                        legend.position="none",
+                        plot.title = element_text(hjust = 0.5, size=11),
+                        axis.title.x = element_text(hjust = 0.5, vjust = 0.2, size = 12),
+                        axis.title.y = element_text(hjust = 0.5, size = 12)
+                      ) +
+                      ggtitle("Boxplot of Nitrogen Cycling Proportions") +
+                      labs( x = "Kelp Blade Locations", y = "Proportion of Microbe Species")
+
+png(file = "figures/blade_boxplot.png")
+blade_boxplot
+dev.off()
 
 ## Observations:
 ## Looking at the boxplot, the mean proportion of microbe species in meristem is much higher
