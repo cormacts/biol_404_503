@@ -113,34 +113,8 @@ dephyloseq = function(phylo_obj){
 
 ## We are not rarefying our data at this stage, since we will work with proportions later.
 
-##### Why are we doing this?
-## summarize at rank 6 / genus
-#working.wrp = tax_glom(working.wrp, taxrank = "genus")
-## calculate the number of reads in each sample. This is important for relative abundance calculations later
-#working.wrp@sam_data$read_depth = sample_sums(working.wrp)
-
 ## Getting cleanwrp data out of phyloseq and into a dataframe
 community_data = dephyloseq(cleanwrp)
-
-##### Do we need to do this for the 2019 dataset? It seems like taxonomic ranks are already propagated through
-## Finding lowest taxonomic rank included in the dataset and putting it in a new column
-# We'll use this column later to merge the distribution dataset (Weigel 2019) with the traits dataset (Weigel 2022)
-# Creating function to remove blank strings and replace with NAs
-#replace_empty_with_na <- function(x) {
-#  x[x == ""] <- NA
-#  return(x)
-#}
-# Applying the above function to our dataset (will apply to empty taxonomic rank columns)
-# wrp.processed.df <- wrp.processed.df %>%
-#  mutate(across(everything(), replace_empty_with_na))
-# Creating final dataset with lowest rank column 
-# community_data <- wrp.processed.df %>%
-# rowwise() %>%
-#  mutate(lowest_rank = if_else(!is.na(genus), genus,
-#                               if_else(!is.na(family), family,
-#                                       if_else(!is.na(order), order,
-#                                               if_else(!is.na(class), class,
-#                                                      if_else(!is.na(phylum), phylum, NA_character_))))))
 
 ## Writing to a file
 write.csv(community_data, "data/processed/community_dataframe.csv")
@@ -201,9 +175,9 @@ trait_data <- trait_data %>%
 # trait_data contains microbial taxa and their functional traits (Weigel et al., 2022)
 
 ## We will join these two dataframes using left_join(), to keep all observations in the left (first) dataframe.
-all_merged <- left_join(community_data, trait_data, by = join_by("genus"=="lowest_rank"))
+all_merged <- left_join(community_data, trait_data, by = join_by("species"=="lowest_rank"))
 # Renaming the genus column to reflect that the lowest available taxonomic rank is now stored there
-names(all_merged)[names(all_merged) == "genus"] <- "lowest_rank"
+names(all_merged)[names(all_merged) == "species"] <- "lowest_rank"
 
 ## Creating two sets of filtered data, one for each set of conditions we are planning to compare (meristem versus tip / Macrocystis vs. Nereocystis host)
 # Either question can only be asked using data from specific sites - need to filter for these locations.
