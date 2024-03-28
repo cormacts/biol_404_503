@@ -9,8 +9,9 @@ library(plyr)
 library(qualpalr)
 library(ggpubr)
 
-mag_abundance <- read.csv("data/raw/msystems.01422-21-s0003.csv")
+mag_abundance <- read.csv("data/raw/msystems.01422-21-s0003.csv") 
 trait_data <- read.csv("trait_data_w2022.csv")
+
 
 #replace empty with na function
 replace_empty_with_na <- function(x) {
@@ -32,6 +33,12 @@ mag_data_df <- mag_data_na %>%
 #merge dataframes
 mag_merged <- left_join(mag_data_df, trait_data, by = "lowest_rank")
 
+mag_merged <- mag_merged %>% 
+  mutate(
+    nitrogen_cycling = recode_factor(nitrogen_cycling,
+                                     "N" = "No",
+                                     "Y" = "Yes"),
+    nitrogen_cycling = fct_explicit_na(nitrogen_cycling, "Unknown"))
 #select columns for condensed data frame
 mag_data_all <- mag_merged %>%
   select(
@@ -67,3 +74,22 @@ sp_stackplot <- ggplot(relabun_data, aes(fill=nitrogen_cycling, y=relabun, x=Sam
   theme_bw() +
   scale_fill_manual(values = c("lightblue", "yellow1", "violet"))
 sp_stackplot
+
+# stats
+
+plot_sp_proportions
+
+## Levene's test for homogeneity of variances:
+## For between mag data (2022) and 16s data (2019):
+sp_lt <- leveneTest(sum_abundance ~ description, ndata)
+print(sp_lt)
+## p-value > 0.05, therefore we cannot reject the null hypothesis: 
+## Cannot use a two-sample t-test
+## Will perform a Mann-Whitney U test
+
+## For between meristem and blade tip:
+b_lt <- leveneTest(sum_abundance ~ sample_type, bdata)
+print(b_lt)
+## p-value is greater than 0.05, therefore we cannot reject the null hypothesis:
+## Cannot use a two-sample t-test
+## Will perform a Mann-Whitney U test
