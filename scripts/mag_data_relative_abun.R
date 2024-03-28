@@ -77,10 +77,15 @@ sp_stackplot
 
 # stats
 
-plot_sp_proportions
+s_proportions <- filter(plot_sp_proportions,species == "Nereocystis")
+
+# Perform Welch's t-test
+ttest_mag_16s <- t.test(group1, group2, var.equal = FALSE)
+
+# Print the result
+print(result)
 
 ## Levene's test for homogeneity of variances:
-## For between mag data (2022) and 16s data (2019):
 sp_lt <- leveneTest(sum_abundance ~ description, ndata)
 print(sp_lt)
 ## p-value > 0.05, therefore we cannot reject the null hypothesis: 
