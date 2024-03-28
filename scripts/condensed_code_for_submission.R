@@ -117,7 +117,7 @@ dephyloseq = function(phylo_obj){
 community_data = dephyloseq(cleanwrp)
 
 ## Writing to a file
-write.csv(community_data, "data/processed/community_dataframe.csv")
+# write.csv(community_data, "data/processed/community_dataframe.csv")
 
 
 ### Setting up the functional trait dataset ###
@@ -377,34 +377,36 @@ ggplot(plot_blade_proportions_2, aes(x=sample, y=proportions_19,
 
 ## Making boxplot to compare proportions
 
-## Box plot comparing proportions of nitrogen cycling microbes between Macrocystis and Nereocystis
-## Filterng for nitrogen cycling microbes
-plot_sp_proportions %>%
-  filter(nitrogen_cycling == "proportion_Y_22") -> sp_plot_data
+## Filtering for nitrogen cycling microbe proportion for stat tests and boxplots:
+sp_stat_data <- plot_sp_proportions %>%
+  filter(nitrogen_cycling == "proportion_Y_22")
+blade_stat_data <- plot_blade_proportions %>%
+  filter(nitrogen_cycling == "proportion_Y_22")
 
+## Box plot comparing proportions of nitrogen cycling microbes between Macrocystis and Nereocystis
 ## Code to plot graph
-sp_plot_data %>%
-  ggplot( aes(x=species, y=proportions_22, fill=species)) +
+sp_boxplot <-   ggplot(sp_stat_data, aes(x=species, y=proportions_22, fill=species)) +
   geom_boxplot() +
-  labs(x = "Kelp Species", y = "Proportion of Microbe Species") +
   scale_fill_viridis(discrete = TRUE, alpha=0.6) +
   geom_jitter(color="black", size=0.4, alpha=0.9) +
   theme_ipsum() +
   theme(
     legend.position="none",
-    plot.title = element_text(size=12)
+    plot.title = element_text(hjust = 0.5, size=11),
+    axis.title.x = element_text(hjust = 0.5, vjust = 0.2, size = 12),
+    axis.title.y = element_text(hjust = 0.5, size = 12)
   ) +
   ggtitle("Boxplot of Nitrogen Cycling Proportions") +
-  xlab("")
+  labs( x = "Kelp Species", y = "Proportion of Microbe Species")
+
+png(file = "figures/sp_boxplot.png")
+sp_boxplot
+dev.off()
 
 ## Box plot comparing proportions of nitrogen cycling microbes between kelp meristem and blade tip samples
-## Filtering for nitrogen cycling microbes
-plot_blade_proportions %>%
-  filter(nitrogen_cycling == "proportion_Y_22") -> b_plot_data
 
 ## Code to plot the graph
-b_plot_data %>%
-  ggplot( aes(x=blade_location, y=proportions_22, fill=blade_location)) +
+blade_boxplot <-   ggplot(blade_stat_data, aes(x=blade_location, y=proportions_22, fill=blade_location)) +
   geom_boxplot() +
   labs(x = "Sample Location", y = "Proportion of Microbe Species") +
   scale_fill_viridis(discrete = TRUE, alpha=0.6) +
@@ -412,76 +414,61 @@ b_plot_data %>%
   theme_ipsum() +
   theme(
     legend.position="none",
-    plot.title = element_text(size=11)
+    plot.title = element_text(hjust = 0.5, size=11),
+    axis.title.x = element_text(hjust = 0.5, vjust = 0.2, size = 12),
+    axis.title.y = element_text(hjust = 0.5, size = 12)
   ) +
   ggtitle("Boxplot of Nitrogen Cycling Proportions") +
-  xlab("")
+  labs( x = "Kelp Blade Locations", y = "Proportion of Microbe Species")
+
+png(file = "figures/blade_boxplot.png")
+blade_boxplot
+dev.off()
 
 ### Statistical tests ###
 
-## Filtering the data to focus specifically on nitrogen cycling species
-sum_sp_data%>%
-  filter(nitrogen_cycling == "Yes") -> ndata
-sum_blade_data%>%
-  filter(nitrogen_cycling == "Yes") -> bdata
+## We want to do a two-sample comparison to look at possible differences in microbe functionality between kelp species and between blade location
 
-## We want to do a two-sample comparison to look at possible differences in microbe functionality between kelp species
-## In this case, we want to examine the differences between nitrogen cycling abundance found on the two kelp
+## Testing for assumptions of a two-sample t-test:
 
-## Testing for assumptions below --------------------
-## Shapiro test:
-## Between kelp species
-ndata %>%
-  group_by(description) %>%
-  shapiro_test(sum_abundance)
-## (Is this the non-rarefied data?) 
-## Output from above, p-values < 0.05, which implies distribution of data is not normal
-## Cannot assume normality
+## Shapiro test
+## Between kelp species:
+sp_stat_data %>%
+  group_by(species) %>%
+  shapiro_test(proportions_22)
+# Output from above, p-value > 0.05 which implies distribution of data is under normal distribution
+# Can assume normality
 
-## (Comment from previous testing with rarefied data)
-## Output from above, p-value > 0.05 which implies distribution of data is under normal distribution
-## Can assume normality
+## Between meristem and blade tip:
+blade_stat_data %>%
+  group_by(blade_location) %>%
+  shapiro_test(proportions_22)
+# Output from above, p-value < 0.05, implies data is not under normal distribution
+# Cannot assume normality as the two groups differ
 
-## Between meristem and blade tip
-bdata %>%
-  group_by(sample_type) %>%
-  shapiro_test(sum_abundance)
-## (Is this the non-rarefied data?) 
-## Output from above, p-value < 0.05 for meristem,p-value > 0.05 for tip
-## which implies distribution of data is not normal for meristem and normal for tip
-## Cannot assume normality as the two groups differ
-
-## (Comment from previous testing with rarefied data)
-## Output from above, p-value > 0.05 which implies distribution of data is under normal distribution
-## Can assume normality
-
-## Levene's test for homogeneity of variances:
-## For between kelp species:
-sp_lt <- leveneTest(sum_abundance ~ description, ndata)
+## Levene's test for homogeneity of variances
+## Between kelp species:
+sp_lt <- leveneTest(proportions_22 ~ species, sp_stat_data)
 print(sp_lt)
-## p-value > 0.05, therefore we cannot reject the null hypothesis: 
-## Cannot use a two-sample t-test
-## Will perform a Mann-Whitney U test
+## p-value < 0.05, therefore we can reject the null hypothesis: There is not equal variance
+## Cannot use a two-sample t-test --> will perform a Mann-Whitney U test
 
 ## For between meristem and blade tip:
-b_lt <- leveneTest(sum_abundance ~ sample_type, bdata)
+b_lt <- leveneTest(proportions_22 ~ blade_location, blade_stat_data)
 print(b_lt)
-## p-value is greater than 0.05, therefore we cannot reject the null hypothesis:
-## Cannot use a two-sample t-test
-## Will perform a Mann-Whitney U test
+## p-value is greater than 0.05, therefore we cannot reject the null hypothesis
+## Can use a two-sample t-test
 
 ## --------------------------------------------------
 
-## Between species (sp)test: mean proportion of nitrogen-fixing microbe species
+## Between species test: mean proportion of nitrogen-fixing microbe species
 ## Using a Mann-Whitney U test as our data does not meet the assumptions of the t-test
-sp_wctest <- wilcox.test(sum_abundance ~ description, ndata)
+sp_wctest <- wilcox.test(proportions_22 ~ species, sp_stat_data)
 print(sp_wctest)
 ## p-value > 0.05, therefore we cannot reject the null hypothesis
 
 ## Between kelp location (meristem and blade tip) test: mean proportion of nitrogen-fixing microbe species
 ## Using a Mann-Whitney U test as our data does not meet the assumptions of the t-test
-b_wctest <- wilcox.test(sum_abundance ~ sample_type, bdata)
+b_wctest <- wilcox.test(proportions_22 ~ blade_location, blade_stat_data)
 print(b_wctest)
 ## p-value < 0.05, therefore we can reject the null hypothesis and embrace the alternative hypothesis
-
-
