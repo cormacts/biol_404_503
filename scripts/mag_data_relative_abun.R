@@ -75,26 +75,30 @@ sp_stackplot <- ggplot(relabun_data, aes(fill=nitrogen_cycling, y=relabun, x=Sam
   scale_fill_manual(values = c("lightblue", "yellow1", "violet"))
 sp_stackplot
 
-# stats
+##### stats ####
 
-s_proportions <- filter(plot_sp_proportions,species == "Nereocystis")
+#creat dataframes from each dataset (mag data and 16s data) with the proportions of nitrogen cyclers
 
+s_proportions <- filter(plot_sp_proportions,species == "Nereocystis", nitrogen_cycling == "proportion_Y_22") 
+  
+relabun_Y <- filter(relabun_data, nitrogen_cycling == "YES")
+
+proportion_16s <- s_proportions$proportions_22
+proportion_mag <- relabun_data$relabun
 # Perform Welch's t-test
-ttest_mag_16s <- t.test(group1, group2, var.equal = FALSE)
+ttest_mag_16s <- t.test(proportion_16s, proportion_mag, var.equal = FALSE)
 
 # Print the result
-print(result)
+print(ttest_mag_16s)
 
-## Levene's test for homogeneity of variances:
-sp_lt <- leveneTest(sum_abundance ~ description, ndata)
-print(sp_lt)
-## p-value > 0.05, therefore we cannot reject the null hypothesis: 
-## Cannot use a two-sample t-test
-## Will perform a Mann-Whitney U test
+#t = 2.765, df = 40.312, p-value = 0.008546
+# there is a statistically significant difference between the relative abundances of nitrogen cyclers in
+# the metagenomic data vs the 16S data for community composition of functional traits. Therefore we can
+# reject the null hypothesis that these two groups are the same. 
 
-## For between meristem and blade tip:
-b_lt <- leveneTest(sum_abundance ~ sample_type, bdata)
-print(b_lt)
-## p-value is greater than 0.05, therefore we cannot reject the null hypothesis:
-## Cannot use a two-sample t-test
-## Will perform a Mann-Whitney U test
+#This means that the functional trait composition
+# data between these two groups cannot be compared because there are two many unknowns in the 16s data
+
+
+
+
