@@ -73,7 +73,10 @@ sp_stackplot <- ggplot(relabun_data, aes(fill=nitrogen_cycling, y=relabun, x=Sam
         axis.text.x = element_text(colour = "grey20", size = 12)) +
   theme_bw() +
   scale_fill_manual(values = c("lightblue", "yellow1", "violet"))
+
+png(file = "figures/mag_taxaplot.png")
 sp_stackplot
+dev.off()
 
 ##### stats ####
 
