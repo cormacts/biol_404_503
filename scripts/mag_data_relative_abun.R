@@ -91,6 +91,11 @@ ttest_mag_16s <- t.test(proportion_16s, proportion_mag, var.equal = FALSE)
 # Print the result
 print(ttest_mag_16s)
 
+
+# Didn't check our assumptions but added this in case, also p<0.5
+utest_mag_16s <- wilcox.test(proportion_16s, proportion_mag)
+print(utest_mag_16s)
+
 #t = 2.765, df = 40.312, p-value = 0.008546
 # there is a statistically significant difference between the relative abundances of nitrogen cyclers in
 # the metagenomic data vs the 16S data for community composition of functional traits. Therefore we can
