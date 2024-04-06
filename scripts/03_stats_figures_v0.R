@@ -207,8 +207,11 @@ sp_stackplot <- ggplot(species_data, aes(fill=nitrogen_cycling, y=asv_abundance,
                           axis.text.x = element_text(colour = "grey20", size = 12)) +
                     theme_bw() +
                     scale_fill_manual(values = c("lightblue", "yellow1", "violet"))
+
+png(file = "figures/sp_stackplot.png")
 sp_stackplot
-ggsave(file = "figures/species_stackplot.PDF", plot = sp_stackplot, dpi = 500, units = "mm", width = 150, height = 100)
+dev.off()
+
 
 # Observations from the plot: 
 # Looks as though Macrocystis has a larger abundance of nitrogen cycling microbes, which contradicts what we initially hypothesied, 
@@ -229,8 +232,10 @@ blade_stackplot <- ggplot(blade_data, aes(fill=nitrogen_cycling, y=asv_abundance
                       theme_bw() +
                       scale_fill_manual(values = c("lightblue", "yellow1", "violet"))
 
+png(file = "figures/blade_stackplot.png")
 blade_stackplot
-ggsave(file = "figures/blade_stackplot.PDF", plot = blade_stackplot, dpi = 500, units = "mm", width = 150, height = 100)
+dev.off()
+
 
 ## Observations of plot:
 ## There is a vast difference between abundance of nitrogen cycling on the kelp blade tip and meristem.

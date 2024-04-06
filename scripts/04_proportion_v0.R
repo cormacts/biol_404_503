@@ -36,6 +36,7 @@ plot_sp_proportions <- plot_sp_proportions %>%
   separate(sample_ID,c("species", "sample"), sep = " ", remove = TRUE)
 
 ## Plotting code from Annie + taxaplots code from Lab 5:
+png(file = "figures/sp_proportion_taxaplot.png")
 ggplot(plot_sp_proportions, aes(x=sample, y=proportions_22,
                                 fill=nitrogen_cycling))+
   geom_bar(stat = "identity")+
@@ -52,6 +53,7 @@ ggplot(plot_sp_proportions, aes(x=sample, y=proportions_22,
         axis.line = element_line(colour = "black"),
         axis.text.x = element_blank())+
   labs(y="Relative abundance", x="Sample", fill="Nitrogen cycling")
+dev.off()
 
 
 ### Blade location / successional stage comparison
@@ -87,6 +89,7 @@ plot_blade_proportions <- plot_blade_proportions %>%
   separate(sample_ID,c("blade_location", "sample"), sep = " ", remove = TRUE)
 
 ## Plotting code from Annie + taxaplots code from Lab 5:
+png(file = "figures/b_proportion_taxaplot.png")
 ggplot(plot_blade_proportions, aes(x=sample, y=proportions_22,
                   fill=nitrogen_cycling))+
   geom_bar(stat = "identity")+
@@ -103,6 +106,7 @@ ggplot(plot_blade_proportions, aes(x=sample, y=proportions_22,
         axis.line = element_line(colour = "black"),
         axis.text.x = element_blank())+
   labs(y="Relative abundance", x="Sample", fill="Nitrogen cycling")
+dev.off()
 
 ##### Same procedure but with full Weigel 2019 dataset and taxa with unknown nitrogen-cycling traits
 
@@ -116,6 +120,7 @@ plot_sp_proportions_2 <- plot_sp_proportions_2 %>%
   separate(sample_ID,c("species", "sample"), sep = " ", remove = TRUE)
 
 ## Plotting code from Annie + taxaplots code from Lab 5:
+png(file = "figures/proportion_NAs_taxaplot.png")
 ggplot(plot_sp_proportions_2, aes(x=sample, y=proportions_19,
                                 fill=nitrogen_cycling))+
   geom_bar(stat = "identity")+
@@ -132,6 +137,7 @@ ggplot(plot_sp_proportions_2, aes(x=sample, y=proportions_19,
         axis.line = element_line(colour = "black"),
         axis.text.x = element_blank())+
   labs(y="Relative abundance", x="Sample", fill="Nitrogen cycling")
+dev.off()
 
 #### Blade location comparison
 
@@ -143,6 +149,7 @@ plot_blade_proportions_2 <- plot_blade_proportions_2 %>%
   separate(sample_ID,c("blade_location", "sample"), sep = " ", remove = TRUE)
 
 ## Plotting code from Annie + taxaplots code from Lab 5:
+png(file = "figures/b_proportion_NAs_taxaplot.png")
 ggplot(plot_blade_proportions_2, aes(x=sample, y=proportions_19,
                                    fill=nitrogen_cycling))+
   geom_bar(stat = "identity")+
@@ -159,4 +166,4 @@ ggplot(plot_blade_proportions_2, aes(x=sample, y=proportions_19,
         axis.line = element_line(colour = "black"),
         axis.text.x = element_blank())+
   labs(y="Relative abundance", x="Sample", fill="Nitrogen cycling")
-
+dev.off()
