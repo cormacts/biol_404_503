@@ -127,8 +127,8 @@ traits <- read.csv("data/raw/msystems.01422-21-s0005.csv")
 
 ## Condensing all nitrogen cycling-related traits into one column
 traits <- traits %>%
-  mutate_at(vars(starts_with(c("Dissimilatory_nitrate_reduction","Assimilatory_nitrate_reduction","Denitrification","Nitrogen_fixation","Nitrification","Annamox"))),~coalesce(.,"NA")) %>%
-  mutate(nitrogen_cycling = if_else(rowSums(select(., starts_with(c("Dissimilatory_nitrate_reduction","Assimilatory_nitrate_reduction","Denitrification","Nitrogen_fixation","Nitrification","Annamox")))=="Y",na.rm=TRUE)>0,"Y",""))
+  mutate_at(vars(starts_with(c("Dissimilatory_nitrate_reduction","Nitrogen_fixation","Nitrification"))),~coalesce(.,"NA")) %>%
+  mutate(nitrogen_cycling = if_else(rowSums(select(., starts_with(c("Dissimilatory_nitrate_reduction","Nitrogen_fixation","Nitrification")))=="Y",na.rm=TRUE)>0,"Y",""))
 
 ## Creating a new dataframe with only relevant variables
 condensed_traits <- traits[1:66,c("MAG_name", "phylum","class","order","family","genus","nitrogen_cycling")]
