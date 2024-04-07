@@ -331,6 +331,7 @@ ggplot(plot_sp_proportions, aes(x=sample, y=proportions_22,
         axis.line = element_line(colour = "black"),
         axis.text.x = element_blank())+
   labs(y="Relative abundance", x="Sample", fill="Nitrogen cycling")
+
 # Blade location comparison:
 ggplot(plot_blade_proportions, aes(x=sample, y=proportions_22,
                                    fill=nitrogen_cycling))+
@@ -383,6 +384,7 @@ ggplot(plot_sp_proportions_2, aes(x=sample, y=proportions_19,
         axis.line = element_line(colour = "black"),
         axis.text.x = element_blank())+
   labs(y="Relative abundance", x="Sample", fill="Nitrogen cycling")
+
 # Blade location comparison:
 ggplot(plot_blade_proportions_2, aes(x=sample, y=proportions_19,
                                      fill=nitrogen_cycling))+
