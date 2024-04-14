@@ -208,7 +208,23 @@ sp_stackplot <- ggplot(species_data, aes(fill=nitrogen_cycling, y=asv_abundance,
                     theme_bw() +
                     scale_fill_manual(values = c("lightblue", "yellow1", "violet"))
 
-png(file = "figures/sp_stackplot.png")
+
+
+png(
+  file = "figures/sp_stackplot.png",
+  width     = 5,
+  height    = 3.25,
+  units     = "in",
+  res       = 1200,
+  pointsize = 4
+)
+par(
+  mar      = c(5, 5, 2, 2),
+  xaxs     = "i",
+  yaxs     = "i",
+  cex.axis = 2,
+  cex.lab  = 2
+)
 sp_stackplot
 dev.off()
 
@@ -232,9 +248,25 @@ blade_stackplot <- ggplot(blade_data, aes(fill=nitrogen_cycling, y=asv_abundance
                       theme_bw() +
                       scale_fill_manual(values = c("lightblue", "yellow1", "violet"))
 
-png(file = "figures/blade_stackplot.png")
+
+png(
+  file = "figures/blade_stackplot.png",
+  width     = 5,
+  height    = 3.25,
+  units     = "in",
+  res       = 1200,
+  pointsize = 4
+)
+par(
+  mar      = c(5, 5, 2, 2),
+  xaxs     = "i",
+  yaxs     = "i",
+  cex.axis = 2,
+  cex.lab  = 2
+)
 blade_stackplot
 dev.off()
+
 
 
 ## Observations of plot:
@@ -263,15 +295,27 @@ sp_boxplot <-   ggplot(sp_stat_data, aes(x=species, y=proportions_22, fill=speci
                   theme_ipsum() +
                   theme(
                     legend.position="none",
-                    plot.title = element_text(hjust = 0.5, size=11),
-                    axis.title.x = element_text(hjust = 0.5, vjust = 0.2, size = 12),
-                    axis.title.y = element_text(hjust = 0.5, size = 12)
+                    axis.title.x = element_text(hjust = 0.5, vjust = 0.2, size = 15),
+                    axis.title.y = element_text(hjust = 0.5, size = 15)
                   ) +
-                  ggtitle("Boxplot of Nitrogen Cycling Proportions") +
                   labs( x = "Kelp Species", y = "Proportion of Microbe Species")
 
 
-png(file = "figures/sp_boxplot.png")
+png(
+  file = "figures/sp_boxplot.png",
+  width     = 5,
+  height    = 5,
+  units     = "in",
+  res       = 1200,
+  pointsize = 4
+)
+par(
+  mar      = c(5, 5, 2, 2),
+  xaxs     = "i",
+  yaxs     = "i",
+  cex.axis = 2,
+  cex.lab  = 2
+)
 sp_boxplot
 dev.off()
 
@@ -294,14 +338,26 @@ blade_boxplot <-   ggplot(blade_stat_data, aes(x=blade_location, y=proportions_2
                       theme_ipsum() +
                       theme(
                         legend.position="none",
-                        plot.title = element_text(hjust = 0.5, size=11),
-                        axis.title.x = element_text(hjust = 0.5, vjust = 0.2, size = 12),
-                        axis.title.y = element_text(hjust = 0.5, size = 12)
+                        axis.title.x = element_text(hjust = 0.5, vjust = 0.2, size = 15),
+                        axis.title.y = element_text(hjust = 0.5, size = 15)
                       ) +
-                      ggtitle("Boxplot of Nitrogen Cycling Proportions") +
                       labs( x = "Kelp Blade Locations", y = "Proportion of Microbe Species")
 
-png(file = "figures/blade_boxplot.png")
+png(
+  file = "figures/blade_boxplot.png",
+  width     = 5,
+  height    = 5,
+  units     = "in",
+  res       = 1200,
+  pointsize = 4
+)
+par(
+  mar      = c(5, 5, 2, 2),
+  xaxs     = "i",
+  yaxs     = "i",
+  cex.axis = 2,
+  cex.lab  = 2
+)
 blade_boxplot
 dev.off()
 
@@ -310,6 +366,7 @@ dev.off()
 ## than the mean proportion samples from the tip.
 ## This aligns with our initial hypothesis.
 
+<<<<<<< HEAD
 
 # Observation Maps ####
 library(leaflet)
@@ -337,3 +394,7 @@ sample_map <- leaflet(map_data) %>%
     popup = ~location 
   )
 sample_map
+=======
+## git lfs for annie because push is not working otherwise
+git lfs install
+>>>>>>> 581b7cec95f9daa0ef9e0c7498aedbf7d1d3df57
