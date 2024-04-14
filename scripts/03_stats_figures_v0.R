@@ -309,3 +309,31 @@ dev.off()
 ## Looking at the boxplot, the mean proportion of microbe species in meristem is much higher
 ## than the mean proportion samples from the tip.
 ## This aligns with our initial hypothesis.
+
+
+# Observation Maps ####
+library(leaflet)
+species_data$longitude <- as.numeric(species_data$longitude)
+species_data$latitude <- as.numeric(species_data$latitude)
+# Filter dataset to keep only the first occurrence of each unique location
+first_occurrences <- species_data %>% 
+  group_by(location) %>% 
+  slice(1)
+
+blade_occurence <- blade_data %>% 
+  group_by(location) %>% 
+  slice(1)
+
+map_data <- rbind(first_occurrences, blade_occurence)
+
+# Create leaflet map
+sample_map <- leaflet(map_data) %>%
+  addTiles() %>%
+  addCircleMarkers(
+    lng = ~longitude,
+    lat = ~latitude,
+    radius = 10,
+    color = ifelse(map_data$location == "Tatoosh", "red", "blue"),
+    popup = ~location 
+  )
+sample_map
