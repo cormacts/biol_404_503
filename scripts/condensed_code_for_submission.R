@@ -382,7 +382,7 @@ ggplot(plot_sp_proportions_2, aes(x=sample, y=proportions_19,
         axis.text.y = element_text(size = 10, colour = "black"),
         axis.title = element_text(size=10, face="bold"),
         strip.text = element_text(color="black", size=10),
-        legend.text=element_text(size=6),
+        legend.text=element_text(size=10),
         axis.line = element_line(colour = "black"),
         axis.text.x = element_blank())+
   labs(y="Relative abundance", x="Sample", fill="Nitrogen cycling")
