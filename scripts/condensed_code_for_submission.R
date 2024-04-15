@@ -410,11 +410,15 @@ ggplot(plot_blade_proportions_2, aes(x=sample, y=proportions_19,
 plot_sp_proportions %>%
   filter(nitrogen_cycling == "proportion_Y_22") -> sp_plot_data
 
+sp_plot_data <- sp_plot_data %>%
+  group_by(species) %>%
+  mutate(MD = median(proportions_22))
+
 ## Code to plot graph
 sp_plot_data %>%
-  ggplot( aes(x=species, y=proportions_22, fill=species)) +
+  ggplot(aes(x=species, y=proportions_22, fill=species, label = round(MD, 3))) +
   geom_boxplot() +
-  labs(x = "Kelp Species",  y = "Proportion of Nitrogen Cycling Microbes") +
+  geom_label(aes(y = MD)) +
   scale_fill_manual(values = c("yellow1", "yellow1")) +
   geom_jitter(color="black", size=0.4, alpha=0.9) +
   theme_ipsum() +
@@ -422,18 +426,24 @@ sp_plot_data %>%
     legend.position="none",
     axis.title.x = element_text(hjust = 0.5, vjust = 0.2, size = 15),
     axis.title.y = element_text(hjust = 0.5, size = 15)
-    )
+  ) +
+  labs( x = "Kelp Species", y = "Proportion of Nitrogen Cycling Microbes")
+
 
 ## Box plot comparing proportions of nitrogen cycling microbes between kelp meristem and blade tip samples
-## Filtering for nitrogen cycling microbes
+## Filtering for nitrogen cycling microbes and calculating median
 plot_blade_proportions %>%
   filter(nitrogen_cycling == "proportion_Y_22") -> b_plot_data
 
+b_plot_data <- b_plot_data %>%
+  group_by(blade_location) %>%
+  mutate(MD = median(proportions_22))
+
 ## Code to plot the graph
 b_plot_data %>%
-  ggplot( aes(x=blade_location, y=proportions_22, fill=blade_location)) +
+  ggplot(aes(x=blade_location, y=proportions_22, fill=blade_location, label = round(MD, 3))) +
   geom_boxplot() +
-  labs(x = "Sample Location", y = "Proportion of Nitrogen Cycling Microbes") +
+  geom_label(aes(y = MD)) +
   scale_fill_manual(values = c("yellow1", "yellow1")) +
   geom_jitter(color="black", size=0.4, alpha=0.9) +
   theme_ipsum() +
