@@ -172,7 +172,7 @@ print(sp_lt)
 b_lt <- leveneTest(proportions_22 ~ blade_location, blade_stat_data)
 print(b_lt)
 ## p-value is greater than 0.05, therefore we cannot reject the null hypothesis:
-## Can use a two-sample t-test
+## Can use a two-sample t-test if under normal distribution
 
 
 ## --------------------------------------------------
@@ -230,7 +230,7 @@ dev.off()
 
 
 # Observations from the plot: 
-# Looks as though Macrocystis has a larger abundance of nitrogen cycling microbes, which contradicts what we initially hypothesied, 
+# Looks as though Macrocystis has a larger abundance of nitrogen cycling microbes, which contradicts what we initially hypothesized, 
 # however it is possible that when comparing proportion of nitrogen cycling microbes
 # to the rest of the population, we may find different results. 
 # In addition, it is important to keep in mind that a large abundance of microbes 
