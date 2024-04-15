@@ -371,7 +371,7 @@ plot_blade_proportions_2 <- plot_blade_proportions_2 %>%
 ggplot(plot_sp_proportions_2, aes(x=sample, y=proportions_19,
                                   fill=nitrogen_cycling))+
   geom_bar(stat = "identity")+
-  scale_fill_manual(values = c("lightblue","violet","yellow1"))+
+  scale_fill_manual(labels = c("No", "Unknown", "Yes"), values = c("lightblue","violet","yellow1"))+
   guides(fill=guide_legend(ncol=2))+
   facet_grid(.~species, scales="free", space="free")+
   theme_bw()+
@@ -389,7 +389,7 @@ ggplot(plot_sp_proportions_2, aes(x=sample, y=proportions_19,
 ggplot(plot_blade_proportions_2, aes(x=sample, y=proportions_19,
                                      fill=nitrogen_cycling))+
   geom_bar(stat = "identity")+
-  scale_fill_manual(values = c("lightblue","violet","yellow1"))+
+  scale_fill_manual(labels = c("No", "Unknown", "Yes"), values = c("lightblue","violet","yellow1"))+
   guides(fill=guide_legend(ncol=2))+
   facet_grid(.~blade_location, scales="free", space="free")+
   theme_bw()+
