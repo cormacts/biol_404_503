@@ -336,16 +336,16 @@ ggplot(plot_sp_proportions, aes(x=sample, y=proportions_22,
 ggplot(plot_blade_proportions, aes(x=sample, y=proportions_22,
                                    fill=nitrogen_cycling))+
   geom_bar(stat = "identity")+
-  scale_fill_manual(values = c("lightblue", "yellow1"))+
+  scale_fill_manual(labels = c("No", "Yes"), values = c("lightblue", "yellow1"))+
   guides(fill=guide_legend(ncol=2))+
   facet_grid(.~blade_location, scales="free", space="free")+
   theme_bw()+
   theme(panel.grid = element_blank(),
         strip.background = element_rect(fill="white"),
-        axis.text.y = element_text(size = 10, colour = "black"),
-        axis.title = element_text(size=10, face="bold"),
+        axis.text.y = element_text(size = 12, colour = "black"),
+        axis.title = element_text(size=12, face="bold"),
         strip.text = element_text(color="black", size=10),
-        legend.text=element_text(size=6),
+        legend.text=element_text(size=10),
         axis.line = element_line(colour = "black"),
         axis.text.x = element_blank())+
   labs(y="Relative abundance", x="Sample", fill="Nitrogen cycling")
@@ -395,10 +395,10 @@ ggplot(plot_blade_proportions_2, aes(x=sample, y=proportions_19,
   theme_bw()+
   theme(panel.grid = element_blank(),
         strip.background = element_rect(fill="white"),
-        axis.text.y = element_text(size = 10, colour = "black"),
-        axis.title = element_text(size=10, face="bold"),
+        axis.text.y = element_text(size = 12, colour = "black"),
+        axis.title = element_text(size=12, face="bold"),
         strip.text = element_text(color="black", size=10),
-        legend.text=element_text(size=6),
+        legend.text=element_text(size=10),
         axis.line = element_line(colour = "black"),
         axis.text.x = element_blank())+
   labs(y="Relative abundance", x="Sample", fill="Nitrogen cycling")
@@ -414,16 +414,15 @@ plot_sp_proportions %>%
 sp_plot_data %>%
   ggplot( aes(x=species, y=proportions_22, fill=species)) +
   geom_boxplot() +
-  labs(x = "Kelp Species", y = "Proportion of Microbe Species") +
-  scale_fill_viridis(discrete = TRUE, alpha=0.6) +
+  labs(x = "Kelp Species",  y = "Proportion of Nitrogen Cycling Microbes") +
+  scale_fill_manual(values = c("yellow1", "yellow1")) +
   geom_jitter(color="black", size=0.4, alpha=0.9) +
   theme_ipsum() +
   theme(
     legend.position="none",
-    plot.title = element_text(size=12)
-  ) +
-  ggtitle("Boxplot of Nitrogen Cycling Proportions") +
-  xlab("")
+    axis.title.x = element_text(hjust = 0.5, vjust = 0.2, size = 15),
+    axis.title.y = element_text(hjust = 0.5, size = 15)
+    )
 
 ## Box plot comparing proportions of nitrogen cycling microbes between kelp meristem and blade tip samples
 ## Filtering for nitrogen cycling microbes
@@ -434,16 +433,16 @@ plot_blade_proportions %>%
 b_plot_data %>%
   ggplot( aes(x=blade_location, y=proportions_22, fill=blade_location)) +
   geom_boxplot() +
-  labs(x = "Sample Location", y = "Proportion of Microbe Species") +
-  scale_fill_viridis(discrete = TRUE, alpha=0.6) +
+  labs(x = "Sample Location", y = "Proportion of Nitrogen Cycling Microbes") +
+  scale_fill_manual(values = c("yellow1", "yellow1")) +
   geom_jitter(color="black", size=0.4, alpha=0.9) +
   theme_ipsum() +
   theme(
     legend.position="none",
-    plot.title = element_text(size=11)
+    axis.title.x = element_text(hjust = 0.5, vjust = 0.2, size = 15),
+    axis.title.y = element_text(hjust = 0.5, size = 15)
   ) +
-  ggtitle("Boxplot of Nitrogen Cycling Proportions") +
-  xlab("")
+  labs( x = "Kelp Blade Locations", y = "Proportion of Nitrogen Cycling Microbes")
 
 ### Statistical tests ###
 

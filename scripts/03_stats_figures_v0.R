@@ -290,7 +290,7 @@ dev.off()
 ## Code to plot graph
 sp_boxplot <-   ggplot(sp_stat_data, aes(x=species, y=proportions_22, fill=species)) +
                   geom_boxplot() +
-                  scale_fill_viridis(discrete = TRUE, alpha=0.6) +
+                  scale_fill_manual(values = c("yellow1", "yellow1")) +
                   geom_jitter(color="black", size=0.4, alpha=0.9) +
                   theme_ipsum() +
                   theme(
@@ -298,7 +298,7 @@ sp_boxplot <-   ggplot(sp_stat_data, aes(x=species, y=proportions_22, fill=speci
                     axis.title.x = element_text(hjust = 0.5, vjust = 0.2, size = 15),
                     axis.title.y = element_text(hjust = 0.5, size = 15)
                   ) +
-                  labs( x = "Kelp Species", y = "Proportion of Microbe Species")
+                  labs( x = "Kelp Species", y = "Proportion of Nitrogen Cycling Microbes")
 
 
 png(
@@ -332,8 +332,8 @@ dev.off()
 ## Code to plot the graph
 blade_boxplot <-   ggplot(blade_stat_data, aes(x=blade_location, y=proportions_22, fill=blade_location)) +
                       geom_boxplot() +
-                      labs(x = "Sample Location", y = "Proportion of Microbe Species") +
-                      scale_fill_viridis(discrete = TRUE, alpha=0.6) +
+                      labs(x = "Sample Location", y = "Proportion of Nitrogen Cycling Microbes") +
+                      scale_fill_manual(values = c("yellow1", "yellow1")) +
                       geom_jitter(color="black", size=0.4, alpha=0.9) +
                       theme_ipsum() +
                       theme(
@@ -341,7 +341,7 @@ blade_boxplot <-   ggplot(blade_stat_data, aes(x=blade_location, y=proportions_2
                         axis.title.x = element_text(hjust = 0.5, vjust = 0.2, size = 15),
                         axis.title.y = element_text(hjust = 0.5, size = 15)
                       ) +
-                      labs( x = "Kelp Blade Locations", y = "Proportion of Microbe Species")
+                      labs( x = "Kelp Blade Locations", y = "Proportion of Nitrogen Cycling Microbes")
 
 png(
   file = "figures/blade_boxplot.png",
@@ -365,3 +365,6 @@ dev.off()
 ## Looking at the boxplot, the mean proportion of microbe species in meristem is much higher
 ## than the mean proportion samples from the tip.
 ## This aligns with our initial hypothesis.
+
+## git lfs for annie because push is not working otherwise
+
