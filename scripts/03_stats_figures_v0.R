@@ -294,9 +294,15 @@ dev.off()
 ## Box plot comparing proportions of nitrogen cycling microbes between Macrocystis and Nereocystis
 ## Using the stat dataframe made from above
 
-## Code to plot graph
-sp_boxplot <-   ggplot(sp_stat_data, aes(x=species, y=proportions_22, fill=species)) +
+## Code to plot graph:
+## Code to get median values for the comparison groups
+sp_stat_data <- sp_stat_data %>%
+  group_by(species) %>%
+  mutate(MD = median(proportions_22))
+
+sp_boxplot <-   ggplot(sp_stat_data, aes(x=species, y=proportions_22, fill=species, label = round(MD, 3))) +
                   geom_boxplot() +
+                  geom_label(aes(y = MD)) +
                   scale_fill_manual(values = c("yellow1", "yellow1")) +
                   geom_jitter(color="black", size=0.4, alpha=0.9) +
                   theme_ipsum() +
@@ -336,10 +342,15 @@ dev.off()
 ## Using the stat data frame made from above
 
 
-## Code to plot the graph
-blade_boxplot <-   ggplot(blade_stat_data, aes(x=blade_location, y=proportions_22, fill=blade_location)) +
+## Code to get the median values:
+blade_stat_data <- blade_stat_data %>%
+  group_by(blade_location) %>%
+  mutate(MD = median(proportions_22))
+
+## Code to plot the graph:
+blade_boxplot <-   ggplot(blade_stat_data, aes(x=blade_location, y=proportions_22, fill=blade_location, label = round(MD, 3))) +
                       geom_boxplot() +
-                      labs(x = "Sample Location", y = "Proportion of Nitrogen Cycling Microbes") +
+                      geom_label(aes(y = MD)) +
                       scale_fill_manual(values = c("yellow1", "yellow1")) +
                       geom_jitter(color="black", size=0.4, alpha=0.9) +
                       theme_ipsum() +
