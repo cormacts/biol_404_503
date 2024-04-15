@@ -51,12 +51,19 @@ blade_data <- blade_data %>%
 # levels(species_data$nitrogen_cycling)
 
 ## Summing the asv_abundances based off nitrogen cycling for each species
+## allows us to see total num of relative asv_abundance that are unassigned
 sum_sp_data <- species_data %>%
   group_by(description, nitrogen_cycling) %>%
   summarise_at(vars(asv_abundance),
                list(sum_abundance = sum))
 ## double checking if the total asv_abundance values checks out:
-##sum(species_data$asv_abundance) yes it did check out 
+##sum(species_data$asv_abundance) ##yes it did check out 
+
+## Doing the same thing with the blade_data:
+sum_b_data <- blade_data %>%
+  group_by(sample_type, nitrogen_cycling) %>%
+  summarise_at(vars(asv_abundance),
+               list(sum_abundance = sum))
 
 ## Revising the dataframe used for the statistical tests using Lydia's code:
 new_sum_sp_data <- species_data %>%
