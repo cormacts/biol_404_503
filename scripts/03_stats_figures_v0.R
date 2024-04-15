@@ -366,5 +366,4 @@ dev.off()
 ## than the mean proportion samples from the tip.
 ## This aligns with our initial hypothesis.
 
-## git lfs for annie because push is not working otherwise
 
