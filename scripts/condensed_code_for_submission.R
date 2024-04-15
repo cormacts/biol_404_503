@@ -521,4 +521,63 @@ b_wctest <- wilcox.test(sum_abundance ~ sample_type, bdata)
 print(b_wctest)
 ## p-value < 0.05, therefore we can reject the null hypothesis and embrace the alternative hypothesis
 
+## comparing weigel 2022 trait data relative proportion of nitrogen cyclers to hwat we calculated in the community composition data from Weigel et al. 2019, 2022
+# read in the data
+mag_abundance <- read.csv("data/raw/metag_abun.csv")
+# make lowest taxonomic unit column
+mag_data_na <- mag_data_df %>%
+  rowwise() %>%
+  mutate(lowest_rank = if_else(!is.na(Genus), Genus,
+                               if_else(!is.na(Family), Family,
+                                       if_else(!is.na(Order), Order,
+                                               if_else(!is.na(Class), Class,
+                                                       if_else(!is.na(Phylum), Phylum, NA_character_))))))
+#replace empty with na function
+replace_empty_with_na <- function(x) {
+  x[x == ""] <- NA
+  return(x)
+}
+#use function
+mag_data_df <- mag_data %>%
+  mutate(across(everything(), replace_empty_with_na))
+
+#merge dataframes
+mag_merged <- left_join(mag_data_na, trait_data, by = "lowest_rank")
+
+#select columns for condensed data frame
+mag_data_all <- mag_sum %>%
+  select(
+    MAG_name, lowest_rank,
+   B1_Squaxin_2019:B7_Tatoosh_2018,
+    nitrogen_cycling)
+#make dataframe longer and put sites/samples in a column, create a count column
+pivot_mag <- mag_data_all %>% 
+  pivot_longer(
+    cols = B1_Squaxin_2019:B7_Tatoosh_2018, 
+    names_to = "Sample", 
+    values_to = "count")
+
+# create total abundance column grouping by sample
+mag_total <- pivot_mag %>% group_by(Sample) %>% mutate(sample_total = sum(count))
+# create cycling abundance column grouping by sample and cycling and calculate relative abundance
+mag_total_relabun <- mag_total %>%  group_by(Sample, nitrogen_cycling) %>% mutate(nitro_total = sum(count)) %>% mutate(relabun = nitro_total/total)
+
+#select for columns, pick out unique rows 
+relabun_data <- mag_total_relabun %>%
+  select(nitrogen_cycling, Sample, relabun) %>% 
+  unique()
+
+#plot
+sp_stackplot <- ggplot(relabun_data, aes(fill=nitrogen_cycling, y=relabun, x=Sample)) + 
+  geom_bar(position="stack", stat="identity")+
+  labs(x = "Samples", y = "Relative Abundance of Taxa", color = "Nitrogen Cycling") +
+  theme(strip.text = element_text(face = "italic"),
+        axis.text.x = element_text(colour = "grey20", size = 12)) +
+  theme_bw() +
+  scale_fill_manual(values = c("lightblue", "yellow1", "violet"))
+# save plot as a png
+png(file = "figures/mag_proportion_taxaplot.png")
+sp_stackplot
+dev.off()
+
 
