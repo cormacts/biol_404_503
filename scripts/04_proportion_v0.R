@@ -150,11 +150,28 @@ plot_sp_proportions_2 <- plot_sp_proportions_2 %>%
   separate(sample_ID,c("species", "sample"), sep = " ", remove = TRUE)
 
 ## Plotting code from Annie + taxaplots code from Lab 5:
-png(file = "figures/proportion_NAs_taxaplot.png")
+##png(file = "figures/proportion_NAs_taxaplot.png")
+
+png(
+  file = "figures/proportion_NAS_taxaplot.png",
+  width     = 5,
+  height    = 5,
+  units     = "in",
+  res       = 1200,
+  pointsize = 4
+)
+par(
+  mar      = c(5, 5, 2, 2),
+  xaxs     = "i",
+  yaxs     = "i",
+  cex.axis = 2,
+  cex.lab  = 2
+)
+
 ggplot(plot_sp_proportions_2, aes(x=sample, y=proportions_19,
                                 fill=nitrogen_cycling))+
   geom_bar(stat = "identity")+
-  scale_fill_manual(values = c("lightblue","violet","yellow1"))+
+  scale_fill_manual(labels = c("No", "Unknown", "Yes"), values = c("lightblue","violet","yellow1"))+
   guides(fill=guide_legend(ncol=2))+
   facet_grid(.~species, scales="free", space="free")+
   theme_bw()+
@@ -163,7 +180,7 @@ ggplot(plot_sp_proportions_2, aes(x=sample, y=proportions_19,
         axis.text.y = element_text(size = 10, colour = "black"),
         axis.title = element_text(size=10, face="bold"),
         strip.text = element_text(color="black", size=10),
-        legend.text=element_text(size=6),
+        legend.text=element_text(size=10),
         axis.line = element_line(colour = "black"),
         axis.text.x = element_blank())+
   labs(y="Relative abundance", x="Sample", fill="Nitrogen cycling")
@@ -179,11 +196,27 @@ plot_blade_proportions_2 <- plot_blade_proportions_2 %>%
   separate(sample_ID,c("blade_location", "sample"), sep = " ", remove = TRUE)
 
 ## Plotting code from Annie + taxaplots code from Lab 5:
-png(file = "figures/b_proportion_NAs_taxaplot.png")
+#png(file = "figures/b_proportion_NAs_taxaplot.png")
+
+png(
+  file = "figures/b_proportion_NAS_taxaplot.png",
+  width     = 5,
+  height    = 5,
+  units     = "in",
+  res       = 1200,
+  pointsize = 4
+)
+par(
+  mar      = c(5, 5, 2, 2),
+  xaxs     = "i",
+  yaxs     = "i",
+  cex.axis = 2,
+  cex.lab  = 2
+)
 ggplot(plot_blade_proportions_2, aes(x=sample, y=proportions_19,
                                    fill=nitrogen_cycling))+
   geom_bar(stat = "identity")+
-  scale_fill_manual(values = c("lightblue","violet","yellow1"))+
+  scale_fill_manual(labels = c("No", "Unknown", "Yes"), values = c("lightblue","violet","yellow1"))+
   guides(fill=guide_legend(ncol=2))+
   facet_grid(.~blade_location, scales="free", space="free")+
   theme_bw()+
@@ -192,7 +225,7 @@ ggplot(plot_blade_proportions_2, aes(x=sample, y=proportions_19,
         axis.text.y = element_text(size = 10, colour = "black"),
         axis.title = element_text(size=10, face="bold"),
         strip.text = element_text(color="black", size=10),
-        legend.text=element_text(size=6),
+        legend.text=element_text(size=10),
         axis.line = element_line(colour = "black"),
         axis.text.x = element_blank())+
   labs(y="Relative abundance", x="Sample", fill="Nitrogen cycling")
