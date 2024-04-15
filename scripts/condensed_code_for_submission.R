@@ -318,16 +318,16 @@ plot_blade_proportions <- plot_blade_proportions %>%
 ggplot(plot_sp_proportions, aes(x=sample, y=proportions_22,
                                 fill=nitrogen_cycling))+
   geom_bar(stat = "identity")+
-  scale_fill_manual(values = c("lightblue", "yellow1"))+
+  scale_fill_manual(labels = c("No", "Yes"), values = c("lightblue", "yellow1"))+
   guides(fill=guide_legend(ncol=2))+
   facet_grid(.~species, scales="free", space="free")+
   theme_bw()+
   theme(panel.grid = element_blank(),
         strip.background = element_rect(fill="white"),
-        axis.text.y = element_text(size = 10, colour = "black"),
-        axis.title = element_text(size=10, face="bold"),
+        axis.text.y = element_text(size = 12, colour = "black"),
+        axis.title = element_text(size=12, face="bold"),
         strip.text = element_text(color="black", size=10),
-        legend.text=element_text(size=6),
+        legend.text=element_text(size=10),
         axis.line = element_line(colour = "black"),
         axis.text.x = element_blank())+
   labs(y="Relative abundance", x="Sample", fill="Nitrogen cycling")
