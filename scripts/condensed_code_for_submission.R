@@ -581,14 +581,21 @@ relabun_data <- mag_total_relabun %>%
   select(nitrogen_cycling, Sample, relabun) %>% 
   unique()
 
+# Checking levels -> reorientating to match the layout of previous graphs
+#levels(relabun_data$nitrogen_cycling)
+#relabun_data$nitrogen_cycling <- factor(relabun_data$nitrogen_cycling, c("No", "Unknown", "Yes"))
+
 #plot
 mag_stackplot <- ggplot(relabun_data, aes(fill=nitrogen_cycling, y=relabun, x=Sample)) + 
   geom_bar(position="stack", stat="identity")+
   labs(x = "Samples", y = "Relative Abundance", color = "Nitrogen Cycling") +
-  theme(strip.text = element_text(face = "italic"),
-        axis.text.x = element_text(colour = "grey20", size = 12)) +
+  theme(panel.grid = element_blank(),
+        axis.text.x = element_blank(),
+        axis.ticks.x = element_blank(),
+        axis.title.x = element_text(hjust = 0.5, vjust = 0.2, size = 15),
+        axis.title.y = element_text(hjust = 0.5, size = 15)) +
   theme_bw() +
-  scale_fill_manual(values = c("lightblue", "yellow1", "violet"))
+  scale_fill_manual(values = c("lightblue","violet","yellow1"))
 
 png(file = "figures/mag_taxaplot.png")
 mag_stackplot
@@ -596,7 +603,7 @@ dev.off()
 
 ##### stats for comparing mag relative abundance data to 16s data ####
 
-#creat dataframes from each dataset (mag data and 16s data) with the proportions of nitrogen cyclers
+#create dataframes from each dataset (mag data and 16s data) with the proportions of nitrogen cyclers
 
 s_proportions <- filter(plot_sp_proportions,species == "Nereocystis", nitrogen_cycling == "proportion_Y_22") 
 
