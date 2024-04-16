@@ -587,17 +587,28 @@ relabun_data <- mag_total_relabun %>%
 
 #plot
 mag_stackplot <- ggplot(relabun_data, aes(fill=nitrogen_cycling, y=relabun, x=Sample)) + 
-  geom_bar(position="stack", stat="identity")+
+  geom_bar(position="stack", stat="identity") +
   labs(x = "Samples", y = "Relative Abundance", color = "Nitrogen Cycling") +
-  theme(panel.grid = element_blank(),
-        axis.text.x = element_blank(),
-        axis.ticks.x = element_blank(),
-        axis.title.x = element_text(hjust = 0.5, vjust = 0.2, size = 15),
-        axis.title.y = element_text(hjust = 0.5, size = 15)) +
   theme_bw() +
+  theme(axis.text.x = element_blank(),
+        axis.title.y = element_text(hjust = 0.5, size = 15)) +
   scale_fill_manual(values = c("lightblue","violet","yellow1"))
 
-png(file = "figures/mag_taxaplot.png")
+png(
+  file = "figures/mag_taxaplot.png",
+  width     = 5,
+  height    = 3.25,
+  units     = "in",
+  res       = 1200,
+  pointsize = 4
+)
+par(
+  mar      = c(5, 5, 2, 2),
+  xaxs     = "i",
+  yaxs     = "i",
+  cex.axis = 2,
+  cex.lab  = 2
+  )
 mag_stackplot
 dev.off()
 
