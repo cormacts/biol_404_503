@@ -15,19 +15,17 @@ library(car)
 library(ggplot2)
 library(forcats)
 library(rstatix)
-#install.packages("hrbrthemes")
 library(hrbrthemes)
-#install.packages("viridis")
 library(viridis)
 library(scales)
 
-# Reading in data from Weigel 2019
+
+## Reading in data from mar2018
 wrp = readRDS("data/raw/W2019_and_RP2022_unfiltered_phyloseq.RDS")
 
-### Filtering ###
-# Code adapted from BIOL 403/503 Lab 2
-
-## 1. Removing off target taxa (we are considering only Bacteria and Archaea)
+# Filtering ####
+## remove off target taxa ####
+### We want only Bacteria and Archea within our data
 wrp = subset_taxa(wrp,
                   domain!="Unassigned"&
                     order!="Chloroplast" &
@@ -35,60 +33,82 @@ wrp = subset_taxa(wrp,
                     family!="Mitochondria" &
                     domain!="Eukaryota")
 
-## 2. Removing samples with low number of reads
-sampleSums(wrp) # prints sample sums
-# Adding the sample sums of the reads to meta data column
+## removing samples with low number of reads ####
+# view(sampleSums(wrp)) # This code prints the sample sums
+
+### Add the sample sums of the reads to meta data column
 wrp@sam_data$sample_sums_unfiltered = as.numeric(sample_sums(wrp))
-# We see a relatively continuous increase in read numbers per sample, so will use 800 as the cutoff.
-# Removing all samples with less than 800 reads
+#### relatively continuous increase in sample, going to use 800 as the cutoff 
+
+## Remove all samples with less than 800 reads
 wrp.high <- prune_samples(sample_sums(wrp) >= 800, wrp)
-# Making a new object with only the samples  lost (less than 800 reads)
+# Decided to use 5000, big jump from lowest value to a pretty continuous series of values
+
+## Making a new object with only the samples  lost (less than 5000 reads)
 wrp.below800 <- prune_samples(sample_sums(wrp) < 800, wrp)
-# Getting the metadata out of phyloseq for low reads object
+
+## Getting the metadata out of phyloseq for low reads obj
 wrp.below800 = as.matrix(wrp.below800@sam_data)
-# Writing file to know which samples were lost 
+
+## write file to know which samples were lost here. This is important for the methods section.
 write.csv(wrp.below800, "data/processed/wrp_samples_less_than_800.csv")
 
-## 3. Removing ASVs that are low frequency
-# Extracting otu dataframe (asv table) from phyloseq object
+## removing ASVs that are low frequency ####
+### extracting otu dataframe (asv table) from phyloseq object
 otutab <- as.data.frame(t(as.matrix(otu_table(wrp.high@otu_table))))
-# Calculating the sum of each row in the otutab
-otutab$asv_abundance = rowSums(otutab)
-# Finding the minimum value of asv_abundance 
-min(otutab$asv_abundance)
-# Removing ASVs with low frequency using 100 as threshold
-otu.pruned = subset(otutab, otutab$asv_abundance>=100)
-# Confirming the new minimum ASV abundance value is at the threshold
-min(otu.pruned$asv_abundance)
-# Removing ASV_abundance column
-widthotu = ncol(otu.pruned) # finding width
-otu.pruned = otu.pruned[,-c(widthotu)] # keep everything except the last columns
 
-## 4. Removing infrequent ASVs over samples
-# Creating a function that counts the number of occurrence along rows 
+### Calcuting the sum of each row in the otuta
+otutab$asv_abundance = rowSums(otutab)
+
+### Finding the minimum value of asv_abundance 
+# min(otutab$asv_abundance) # prints minimum value of ASV abundance
+
+### Remvoing ASVs with low Frequency
+#### Using 100 as threshold
+otu.pruned = subset(otutab, otutab$asv_abundance>=100)
+
+### Confirming the new minimum ASV abundance value is at the threshold
+# min(otu.pruned$asv_abundance) # prints minimum value of ASV abundance
+
+#### Removing ASV_abundance column
+widthotu = ncol(otu.pruned) # finding width
+## keep everything in the otu.pruned dataset except the last columns
+otu.pruned = otu.pruned[,-c(widthotu)]
+
+
+## removing infrequent ASVs over samples ####
+### Creating a function that counts the number of occurence along rows where the number in the cell (ASV occurence) 
 ASVoccur = function(x){return(sum(x>0))}
-# Calculating the occurrence of each ASV in the dataframe
+
+### Calculating the occurrence of each ASV in your dataframe
 otu.pruned$asv_occur_count = apply(otu.pruned, 1, ASVoccur)
-# Investigating what the ASV occurance counts look like
-summary(otu.pruned$asv_occur_count)
-# Removing ASVs found two or less times
+### Investigating what the ASV occurance counts look like
+summary(otu.pruned$asv_occur_count) # prints summary
+
+### Removing ASVs found two or less times
 otu.highfreq = subset(otu.pruned, otu.pruned$asv_occur_count>2)
-# Confirming filtering worked
+
+### Confirming filtering worked
 summary(otu.highfreq$asv_occur_count)
-# Removing the asv_occur_count column
+
+### Removing the asv_occur_count column
 otu.highfreq = otu.highfreq[,-c(widthotu)]
 
-## 5. Data de-noising
+## data de-noising ####
 otu.clean <- mutate_all(otu.highfreq, funs(ifelse(. < 3, 0, .)))
 
-### Making a new phyloseq object of cleaned data ###
-
+## Making a new phyloseq object of cleaned king data
 cleanwrp = phyloseq(sample_data(wrp.high@sam_data),
                     tax_table(wrp.high@tax_table),
                     otu_table(as.matrix(otu.clean), taxa_are_rows = TRUE))
 
+## phyloseq-class experiment-level object
+## otu_table() OTU Table: [ 337 taxa and 248 samples ]
+## sample_data() Sample Data: [ 248 samples by 31 sample variables ]
+## tax_table() Taxonomy Table: [ 337 taxa by 8 taxonomic ranks ]
 
-## Creating the dephyloseq function: breaks down the phyloseq object into more manageable data
+# creating the dephyloseq function ####
+### breaks down the phyloseq object into more manageable data
 dephyloseq = function(phylo_obj){
   ## get the metadata
   meta = as.data.frame(as.matrix(phylo_obj@sam_data))
@@ -112,38 +132,30 @@ dephyloseq = function(phylo_obj){
   output = mot
 }
 
-## We are not rarefying our data at this stage, since we will work with proportions later.
 
-##### Why are we doing this?
-## summarize at rank 6 / genus
-#working.wrp = tax_glom(working.wrp, taxrank = "genus")
+## summarize at rank 6 (or change this to be the kans you have in your dataset)
+working.wrp = tax_glom(cleanwrp, taxrank = "genus")
 ## calculate the number of reads in each sample. This is important for relative abundance calculations later
-#working.wrp@sam_data$read_depth = sample_sums(working.wrp)
+working.wrp@sam_data$read_depth = sample_sums(working.wrp)
 
-## Getting cleanwrp data out of phyloseq and into a dataframe
-community_data = dephyloseq(cleanwrp)
+## get working.wrp data out of phyloseq and into a dataframe
+wrp.processed.df = dephyloseq(working.wrp)
 
-##### Do we need to do this for the 2019 dataset? It seems like taxonomic ranks are already propagated through
-## Finding lowest taxonomic rank included in the dataset and putting it in a new column
-# We'll use this column later to merge the distribution dataset (Weigel 2019) with the traits dataset (Weigel 2022)
+# Finding lowest taxanomic data ####
 # Creating function to remove blank strings and replace with NAs
-#replace_empty_with_na <- function(x) {
-#  x[x == ""] <- NA
-#  return(x)
-#}
-# Applying the above function to our dataset (will apply to empty taxonomic rank columns)
-# wrp.processed.df <- wrp.processed.df %>%
-#  mutate(across(everything(), replace_empty_with_na))
-# Creating final dataset with lowest rank column 
-# community_data <- wrp.processed.df %>%
-# rowwise() %>%
-#  mutate(lowest_rank = if_else(!is.na(genus), genus,
-#                               if_else(!is.na(family), family,
-#                                       if_else(!is.na(order), order,
-#                                               if_else(!is.na(class), class,
-#                                                      if_else(!is.na(phylum), phylum, NA_character_))))))
+replace_empty_with_na <- function(x) {
+  x[x == ""] <- NA
+  return(x)
+}
 
-## Writing to a file
+# Applying the above function to our dataset
+wrp.processed.df <- wrp.processed.df %>%
+  mutate(across(everything(), replace_empty_with_na))
+
+# Creating Final Dataset ####
+community_data <- wrp.processed.df 
+  
+# Writing to a file ####
 write.csv(community_data, "data/processed/community_dataframe.csv")
 
 
@@ -177,6 +189,7 @@ trait_data <- condensed_traits %>%
                                        if_else(!is.na(order), order,
                                                if_else(!is.na(class), class,
                                                        if_else(!is.na(phylum), phylum, NA_character_))))))
+
 # The previous function will have placed NAs in the nitrogen_cycling column where there were empty spaces.
 # Creating a function to replace those NAs with "N" (= no nitrogen cycling traits)
 replace_na_with_n <- function(x) {
@@ -302,7 +315,7 @@ pivoted_sum_blade_data$proportion_NA_19 = pivoted_sum_blade_data$Unknown/pivoted
 ## Species comparison:
 sp_stackplot <- ggplot(species_data, aes(fill=nitrogen_cycling, y=asv_abundance, x=description)) + 
   geom_bar(position="stack", stat="identity")+
-  scale_y_continuous(labels = label_comma())+
+  scale_y_continuous(labels = scales::label_comma())+
   labs(x = "Species", y = "ASV Abundance", color = "Nitrogen Cycling") +
   theme(strip.text = element_text(face = "italic"),
         axis.text.x = element_text(colour = "grey20", size = 12)) +
@@ -313,7 +326,7 @@ sp_stackplot
 ## Nereocystis blade location comparison:
 blade_stackplot <- ggplot(blade_data, aes(fill=nitrogen_cycling, y=asv_abundance, x=sample_type)) + 
   geom_bar(position="stack", stat="identity") +
-  scale_y_continuous(labels = label_comma())+
+  scale_y_continuous(labels = scales::label_comma())+
   labs(x = "Sample Type", y = "ASV Abundance", color = "Nitrogen Cycling") +
   theme(strip.text = element_text(face = "italic"),
         axis.text.x = element_text(colour = "grey20", size = 12)) +
