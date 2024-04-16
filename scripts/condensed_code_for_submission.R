@@ -19,6 +19,7 @@ library(rstatix)
 library(hrbrthemes)
 #install.packages("viridis")
 library(viridis)
+library(scales)
 
 # Reading in data from Weigel 2019
 wrp = readRDS("data/raw/W2019_and_RP2022_unfiltered_phyloseq.RDS")
