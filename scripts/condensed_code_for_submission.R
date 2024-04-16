@@ -297,6 +297,28 @@ pivoted_sum_blade_data$proportion_NA_19 = pivoted_sum_blade_data$Unknown/pivoted
 
 ### Visualizing results ###
 
+## Initial simplified stackplot visualization:
+## Species comparison:
+sp_stackplot <- ggplot(species_data, aes(fill=nitrogen_cycling, y=asv_abundance, x=description)) + 
+  geom_bar(position="stack", stat="identity")+
+  labs(x = "Species", y = "ASV Abundance", color = "Nitrogen Cycling") +
+  theme(strip.text = element_text(face = "italic"),
+        axis.text.x = element_text(colour = "grey20", size = 12)) +
+  theme_bw() +
+  scale_fill_manual(values = c("lightblue", "yellow1", "violet"))
+sp_stackplot
+
+## Nereocystis blade location comparison:
+blade_stackplot <- ggplot(blade_data, aes(fill=nitrogen_cycling, y=asv_abundance, x=sample_type)) + 
+  geom_bar(position="stack", 
+           stat="identity") +
+  labs(x = "Sample Type", y = "ASV Abundance", color = "Nitrogen Cycling") +
+  theme(strip.text = element_text(face = "italic"),
+        axis.text.x = element_text(colour = "grey20", size = 12)) +
+  theme_bw() +
+  scale_fill_manual(values = c("lightblue", "yellow1", "violet"))
+blade_stackplot
+
 ## Making taxaplot-like bar charts to show proportions
 
 ## Making dataframes in a format easy to plot
