@@ -311,8 +311,8 @@ sp_stackplot
 
 ## Nereocystis blade location comparison:
 blade_stackplot <- ggplot(blade_data, aes(fill=nitrogen_cycling, y=asv_abundance, x=sample_type)) + 
-  geom_bar(position="stack", 
-           stat="identity") +
+  geom_bar(position="stack", stat="identity") +
+  scale_y_continuous(labels = label_comma())+
   labs(x = "Sample Type", y = "ASV Abundance", color = "Nitrogen Cycling") +
   theme(strip.text = element_text(face = "italic"),
         axis.text.x = element_text(colour = "grey20", size = 12)) +
