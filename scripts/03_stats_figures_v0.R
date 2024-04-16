@@ -19,6 +19,7 @@ library(rstatix)
 library(hrbrthemes)
 #install.packages("viridis")
 library(viridis)
+library(scales)
 
 ## Using dataframe made via previous scripts
 
@@ -209,10 +210,11 @@ print(b_wctest)
 ## -not involved in nitrogen cycling and unknown. Comparison between abundances on Macrocystis and Nereocystis
 sp_stackplot <- ggplot(species_data, aes(fill=nitrogen_cycling, y=asv_abundance, x=description)) + 
                     geom_bar(position="stack", stat="identity")+
+                    scale_y_continuous(labels = label_comma())+
                     labs(x = "Species", y = "ASV Abundance", color = "Nitrogen Cycling") +
+                    theme_bw() +
                     theme(strip.text = element_text(face = "italic"),
                           axis.text.x = element_text(colour = "grey20", size = 12)) +
-                    theme_bw() +
                     scale_fill_manual(values = c("lightblue", "yellow1", "violet"))
 
 

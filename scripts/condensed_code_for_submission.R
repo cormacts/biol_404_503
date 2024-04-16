@@ -301,6 +301,7 @@ pivoted_sum_blade_data$proportion_NA_19 = pivoted_sum_blade_data$Unknown/pivoted
 ## Species comparison:
 sp_stackplot <- ggplot(species_data, aes(fill=nitrogen_cycling, y=asv_abundance, x=description)) + 
   geom_bar(position="stack", stat="identity")+
+  scale_y_continuous(labels = label_comma())+
   labs(x = "Species", y = "ASV Abundance", color = "Nitrogen Cycling") +
   theme(strip.text = element_text(face = "italic"),
         axis.text.x = element_text(colour = "grey20", size = 12)) +
@@ -613,7 +614,8 @@ mag_stackplot <- ggplot(relabun_data, aes(fill=nitrogen_cycling, y=relabun, x=Sa
   labs(x = "Samples", y = "Relative Abundance", color = "Nitrogen Cycling") +
   theme_bw() +
   theme(axis.text.x = element_blank(),
-        axis.title.y = element_text(hjust = 0.5, size = 15)) +
+        axis.title.x = element_text(hjust = 0.5, size = 10),
+        axis.title.y = element_text(hjust = 0.5, size = 10)) +
   scale_fill_manual(values = c("lightblue","violet","yellow1"))
 
 png(
